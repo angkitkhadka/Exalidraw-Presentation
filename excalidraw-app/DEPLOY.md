@@ -1,7 +1,6 @@
 # Deploying to GitHub Pages
 
-The app is a static single-page app, so it can be hosted anywhere. GitHub
-Pages is wired up out of the box.
+The app is a static single-page app, so it can be hosted anywhere. GitHub Pages is wired up out of the box.
 
 ## How it works
 
@@ -12,8 +11,7 @@ Pages is wired up out of the box.
 3. uploads `excalidraw-app/build` as the Pages artifact,
 4. publishes it to `https://<user>.github.io/<repo>/`.
 
-Because Pages serves the app from a sub-path, the build has to know about it.
-The workflow sets:
+Because Pages serves the app from a sub-path, the build has to know about it. The workflow sets:
 
 | Variable | Why |
 | --- | --- |
@@ -28,8 +26,7 @@ Pages has to be switched on for the repository:
 
 **Settings → Pages → Build and deployment → Source: _GitHub Actions_**
 
-The first push to `master` then publishes the site. You can also trigger it
-manually from the **Actions → Deploy to GitHub Pages → Run workflow** menu.
+The first push to `master` then publishes the site. You can also trigger it manually from the **Actions → Deploy to GitHub Pages → Run workflow** menu.
 
 ## Building it yourself
 
@@ -38,13 +35,10 @@ yarn install
 VITE_APP_BASE_PATH=/<repo>/ VITE_APP_LOCAL_FONTS=true yarn build:app:static
 ```
 
-The result is in `excalidraw-app/build` — a plain folder of static files that
-can be served by any web server.
+The result is in `excalidraw-app/build` — a plain folder of static files that can be served by any web server.
 
 ## Notes
 
-- `404.html` is generated during the build and redirects unknown paths back
-  into the app, so deep links keep working.
+- `404.html` is generated during the build and redirects unknown paths back into the app, so deep links keep working.
 - `.nojekyll` is included so Pages serves the files as-is.
-- The service worker caches the app for offline use. It is registered under
-  the base path, so it only ever caches its own deployment.
+- The service worker caches the app for offline use. It is registered under the base path, so it only ever caches its own deployment.
