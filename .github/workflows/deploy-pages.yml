@@ -35,9 +35,15 @@ jobs:
       - name: Build app
         run: yarn build:app:static
         env:
-          # GitHub Pages serves the app from https://<user>.github.io/<repo>/
-          VITE_APP_BASE_PATH: /${{ github.event.repository.name }}/
-          VITE_APP_HOSTNAME: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          # Where the app is served from. A custom domain (https://example.com)
+          # serves from the root, so the base is "/". The plain GitHub Pages
+          # address serves from a sub-path, so the base is "/<repo>/".
+          #
+          # Set the VITE_APP_BASE_PATH repository variable to override this
+          # (Settings -> Secrets and variables -> Actions -> Variables).
+          VITE_APP_BASE_PATH: ${{ vars.VITE_APP_BASE_PATH || '/' }}
+          # the public url, used for the sitemap
+          VITE_APP_HOSTNAME: ${{ vars.VITE_APP_HOSTNAME || format('http://{0}.com.np', 'presentation.angkit') }}
           # this fork is fully local — no analytics, no collaboration backend
           VITE_APP_ENABLE_TRACKING: "false"
           # serve the fonts from the deployment instead of the upstream CDN

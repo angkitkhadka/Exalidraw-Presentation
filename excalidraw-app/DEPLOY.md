@@ -15,10 +15,23 @@ Because Pages serves the app from a sub-path, the build has to know about it. Th
 
 | Variable | Why |
 | --- | --- |
-| `VITE_APP_BASE_PATH` | `/<repo>/` — prefixes every asset url, the PWA manifest and the font preload links |
+| `VITE_APP_BASE_PATH` | where the app is served from — prefixes every asset url, the PWA manifest and the font preload links |
 | `VITE_APP_HOSTNAME` | the public url, used for the sitemap |
 | `VITE_APP_ENABLE_TRACKING` | `false` — no analytics are sent anywhere |
 | `VITE_APP_LOCAL_FONTS` | `true` — the fonts are served from the deployment instead of the upstream CDN |
+
+### The base path has to match where the app is served from
+
+| Where the app is served from                                | Base path |
+| ----------------------------------------------------------- | --------- |
+| A custom domain, e.g. `https://example.com`                 | `/`       |
+| The plain Pages address, e.g. `https://user.github.io/repo` | `/repo/`  |
+
+Get it wrong and every asset 404s, so the page loads blank. The workflow reads the base path from the `VITE_APP_BASE_PATH` repository variable and falls back to `/`, which is what a custom domain needs.
+
+To change it: **Settings → Secrets and variables → Actions → Variables → New repository variable**, name `VITE_APP_BASE_PATH`, value `/repo/`.
+
+The same applies to `VITE_APP_HOSTNAME`, which defaults to the custom domain.
 
 ## Enabling it on the repository
 

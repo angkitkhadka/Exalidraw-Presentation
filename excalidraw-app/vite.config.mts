@@ -66,9 +66,17 @@ export default defineConfig(({ mode }) => {
   /**
    * Public base path of the deployment.
    *
-   * GitHub Pages serves the app from a sub-path (`/<repo>/`), so the base
-   * has to match or the assets 404. Set `VITE_APP_BASE_PATH` to override it
-   * (e.g. `/Exalidraw-Presentation/`). Defaults to the site root.
+   * The base has to match where the app is actually served from, or the
+   * assets 404:
+   *
+   * - a custom domain (https://example.com) serves from the root, so the
+   *   base is `/`
+   * - the plain GitHub Pages address (https://user.github.io/repo) serves
+   *   from a sub-path, so the base is `/repo/`
+   *
+   * `VITE_APP_BASE_PATH` overrides both. The deploy workflow reads it from
+   * the `VITE_APP_BASE_PATH` repository variable and falls back to the
+   * repository name, so a custom domain only needs the variable set to `/`.
    */
   const base = normalizeBase(
     process.env.VITE_APP_BASE_PATH ||
