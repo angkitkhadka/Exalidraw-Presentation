@@ -1,4 +1,15 @@
 .excalidraw {
+  /* Fix sidebar scrolling: constrain the tabs root so tab panels can scroll */
+  .sidebar-tabs-root {
+    min-height: 0;
+    overflow: hidden;
+
+    [role="tabpanel"] {
+      min-height: 0;
+      overflow: hidden;
+    }
+  }
+
   .app-sidebar-promo-container {
     padding: 0.75rem;
     display: flex;
