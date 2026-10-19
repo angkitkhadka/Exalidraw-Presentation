@@ -1,49 +1,27 @@
-<a href="https://excalidraw.com/" target="_blank" rel="noopener">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" alt="Excalidraw" srcset="https://excalidraw.nyc3.cdn.digitaloceanspaces.com/github/excalidraw_github_cover_2_dark.png" />
-    <img alt="Excalidraw" src="https://excalidraw.nyc3.cdn.digitaloceanspaces.com/github/excalidraw_github_cover_2.png" />
-  </picture>
-</a>
-
-<h4 align="center">
-  <a href="https://excalidraw.com">Excalidraw Editor</a> |
-  <a href="https://plus.excalidraw.com/blog">Blog</a> |
-  <a href="https://docs.excalidraw.com">Documentation</a> |
-  <a href="https://plus.excalidraw.com">Excalidraw+</a>
-</h4>
-
 <div align="center">
   <h2>
-    An open source virtual hand-drawn style whiteboard. </br>
-    Collaborative and end-to-end encrypted. </br>
-  <br />
+    A hand-drawn whiteboard with a presentation mode. </br>
+    Slides are frames, animations are hand-drawn. </br>
+    Everything stays in your browser. </br>
   </h2>
 </div>
 
 <br />
 <p align="center">
-  <a href="https://github.com/excalidraw/excalidraw/blob/master/LICENSE">
-    <img alt="Excalidraw is released under the MIT license." src="https://img.shields.io/badge/license-MIT-blue.svg"  /></a>
-  <a href="https://www.npmjs.com/package/@excalidraw/excalidraw">
-    <img alt="npm downloads/month" src="https://img.shields.io/npm/dm/@excalidraw/excalidraw"  /></a>
-  <a href="https://docs.excalidraw.com/docs/introduction/contributing">
-    <img alt="PRs welcome!" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat"  /></a>
-  <a href="https://discord.gg/UexuTaE">
-    <img alt="Chat on Discord" src="https://img.shields.io/discord/723672430744174682?color=738ad6&label=Chat%20on%20Discord&logo=discord&logoColor=ffffff&widget=false"/></a>
-  <a href="https://deepwiki.com/excalidraw/excalidraw">
-    <img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg" /></a>
-  <a href="https://twitter.com/excalidraw">
-    <img alt="Follow Excalidraw on Twitter" src="https://img.shields.io/twitter/follow/excalidraw.svg?label=follow+@excalidraw&style=social&logo=twitter"/></a>
+  <a href="https://github.com/angkitkhadka/Exalidraw-Presentation/blob/master/LICENSE">
+    <img alt="Released under the MIT license." src="https://img.shields.io/badge/license-MIT-blue.svg"  /></a>
+  <a href="https://github.com/angkitkhadka/Exalidraw-Presentation/actions">
+    <img alt="Deploy to GitHub Pages" src="https://github.com/angkitkhadka/Exalidraw-Presentation/actions/workflows/deploy-pages.yml/badge.svg" /></a>
 </p>
 
 <div align="center">
   <figure>
-    <a href="https://excalidraw.com" target="_blank" rel="noopener">
-      <img src="https://excalidraw.nyc3.cdn.digitaloceanspaces.com/github%2Fproduct_showcase.png" alt="Product showcase" />
+    <a href="https://angkitkhadka.github.io/Exalidraw-Presentation/" target="_blank" rel="noopener">
+      <img src="https://raw.githubusercontent.com/excalidraw/excalidraw/master/public/og-image-3.png" alt="Excalidraw" />
     </a>
     <figcaption>
       <p align="center">
-        Create beautiful hand-drawn like diagrams, wireframes, or whatever you like.
+        Open the app in your browser. Nothing is uploaded, nothing is shared.
       </p>
     </figcaption>
   </figure>
@@ -51,74 +29,69 @@
 
 ## Features
 
-The Excalidraw editor (npm package) supports:
+- Infinite, canvas-based whiteboard with a hand-drawn look.
+- Dark mode and a light theme.
+- A presentation mode built into the sidebar: frames become slides.
+- Hand-drawn draw-in animation for every slide, in the spirit of [excalidraw-animate](https://github.com/dai-shi/excalidraw-animate).
+- Eighteen slide transitions, reveal steps, speaker notes and auto-advance.
+- Draw on a slide while presenting, with a laser pointer and an eraser.
+- Multiple canvases, stored in the browser, with no account and no server.
+- Image support, shape libraries, localization and export to PNG, SVG and clipboard.
+- Open format: drawings are stored as an `.excalidraw` json file.
 
-- 💯&nbsp;Free & open-source.
-- 🎨&nbsp;Infinite, canvas-based whiteboard.
-- ✍️&nbsp;Hand-drawn like style.
-- 🌓&nbsp;Dark mode.
-- 🏗️&nbsp;Customizable.
-- 📷&nbsp;Image support.
-- 😀&nbsp;Shape libraries support.
-- 🌐&nbsp;Localization (i18n) support.
-- 🖼️&nbsp;Export to PNG, SVG & clipboard.
-- 💾&nbsp;Open format - export drawings as an `.excalidraw` json file.
-- ⚒️&nbsp;Wide range of tools - rectangle, circle, diamond, arrow, line, free-draw, eraser...
-- ➡️&nbsp;Arrow-binding & labeled arrows.
-- 🔙&nbsp;Undo / Redo.
-- 🔍&nbsp;Zoom and panning support.
+## Presentation mode
 
-## Excalidraw.com
+Open the **Presentation** tab in the sidebar, or press <kbd>F5</kbd>.
 
-The app hosted at [excalidraw.com](https://excalidraw.com) is a minimal showcase of what you can build with Excalidraw. Its [source code](https://github.com/excalidraw/excalidraw/tree/master/excalidraw-app) is part of this repository as well, and the app features:
+A slide is a frame. Draw a frame on the canvas and it becomes a slide, in reading order, so a deck laid out in a grid reads the way you would expect. The panel lets you add, rename, reorder, duplicate and delete slides, and configure the active one:
 
-- 📡&nbsp;PWA support (works offline).
-- 🤼&nbsp;Real-time collaboration.
-- 🔒&nbsp;End-to-end encryption.
-- 💾&nbsp;Local-first support (autosaves to the browser).
-- 🔗&nbsp;Shareable links (export to a readonly link you can share with others).
+- the transition used when entering the slide,
+- the draw-in animation and how fast it draws,
+- how long the slide stays on screen before advancing,
+- the reveal step of every element on the slide, so you can build a slide up piece by piece,
+- speaker notes, visible only to the presenter.
 
-We'll be adding these features as drop-in plugins for the npm package in the future.
+Every slide can be replayed on demand, and the whole deck can be applied to all slides at once when you want a consistent look.
 
-## Quick start
+See [`excalidraw-app/presentation/README.md`](excalidraw-app/presentation/README.md) for the full documentation, including the deck spec that lets an assistant generate a deck for you.
 
-**Note:** following instructions are for installing the Excalidraw [npm package](https://www.npmjs.com/package/@excalidraw/excalidraw) when integrating Excalidraw into your own app. To run the repository locally for development, please refer to our [Development Guide](https://docs.excalidraw.com/docs/introduction/development).
+## Canvases
 
-Use `npm` or `yarn` to install the package.
+The **Canvases** tab keeps as many drawings as you like in the browser. Save the current canvas under a name, open a saved one, start a new one, rename or delete them. Everything is stored locally, in IndexedDB, and survives a reload. Clearing your browser data removes it, so nothing is ever uploaded anywhere.
+
+See [`excalidraw-app/canvases.md`](excalidraw-app/canvases.md) for the details.
+
+## Local development
 
 ```bash
-npm install react react-dom @excalidraw/excalidraw
-# or
-yarn add react react-dom @excalidraw/excalidraw
+yarn install
+yarn start
 ```
 
-Check out our [documentation](https://docs.excalidraw.com/docs/@excalidraw/excalidraw/installation) for more details!
+The app is served on <http://localhost:3000>.
 
-## Contributing
+Useful commands:
 
-- Missing something or found a bug? [Report here](https://github.com/excalidraw/excalidraw/issues).
-- Want to contribute? Check out our [contribution guide](https://docs.excalidraw.com/docs/introduction/contributing) or let us know on [Discord](https://discord.gg/UexuTaE).
-- Want to help with translations? See the [translation guide](https://docs.excalidraw.com/docs/introduction/contributing#translating).
+| Command                 | What it does                               |
+| ----------------------- | ------------------------------------------ |
+| `yarn start`            | Starts the dev server                      |
+| `yarn build:app`        | Builds the app into `excalidraw-app/build` |
+| `yarn build:app:static` | Builds without analytics, for self-hosting |
+| `yarn test:typecheck`   | Type checks the whole repo                 |
+| `yarn test:code`        | Lints the whole repo                       |
+| `yarn test:app`         | Runs the unit tests                        |
+| `yarn fix`              | Formats and lints with autofix             |
 
-## Integrations
+## Deploying to GitHub Pages
 
-- [VScode extension](https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor)
-- [npm package](https://www.npmjs.com/package/@excalidraw/excalidraw)
+The repository ships with a workflow that builds the app and publishes it to GitHub Pages on every push to `master`. The app is served from <https://angkitkhadka.github.io/Exalidraw-Presentation/>.
 
-## Who's integrating Excalidraw
+Enable it once under **Settings → Pages → Build and deployment → Source: GitHub Actions**. See [`excalidraw-app/DEPLOY.md`](excalidraw-app/DEPLOY.md) for the details and for building the site yourself.
 
-[Google Cloud](https://googlecloudcheatsheet.withgoogle.com/architecture) • [Meta](https://meta.com/) • [CodeSandbox](https://codesandbox.io/) • [Obsidian Excalidraw](https://github.com/zsviczian/obsidian-excalidraw-plugin) • [Replit](https://replit.com/) • [Slite](https://slite.com/) • [Notion](https://notion.so/) • [HackerRank](https://www.hackerrank.com/) • and many others
+## Credits
 
-## Sponsors & support
+This is a fork of [Excalidraw](https://github.com/excalidraw/excalidraw), the open source hand-drawn whiteboard, and follows the same MIT license. The presentation mode is a local, server-free reimplementation of the feature Excalidraw+ ships.
 
-If you like the project, you can become a sponsor at [Open Collective](https://opencollective.com/excalidraw) or use [Excalidraw+](https://plus.excalidraw.com/).
+## License
 
-## Thank you for supporting Excalidraw
-
-[<img src="https://opencollective.com/excalidraw/tiers/sponsors/0/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/0/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/1/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/1/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/2/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/2/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/3/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/3/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/4/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/4/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/5/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/5/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/6/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/6/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/7/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/7/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/8/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/8/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/9/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/9/website) [<img src="https://opencollective.com/excalidraw/tiers/sponsors/10/avatar.svg?avatarHeight=120"/>](https://opencollective.com/excalidraw/tiers/sponsors/10/website)
-
-<a href="https://opencollective.com/excalidraw#category-CONTRIBUTE" target="_blank"><img src="https://opencollective.com/excalidraw/tiers/backers.svg?avatarHeight=32"/></a>
-
-Last but not least, we're thankful to these companies for offering their services for free:
-
-[![Vercel](./.github/assets/vercel.svg)](https://vercel.com) [![Sentry](./.github/assets/sentry.svg)](https://sentry.io) [![Crowdin](./.github/assets/crowdin.svg)](https://crowdin.com)
+[MIT](LICENSE)

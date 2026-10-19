@@ -61,19 +61,10 @@
       "layout": "split",
       "eyebrow": "VIRTUALISATION",
       "title": "The hypervisor does the magic",
-      "bullets": [
-        "The hypervisor carves physical servers into isolated VMs.",
-        "Nitro offloads networking and storage to dedicated hardware.",
-        "Each instance gets its own kernel, memory, and disk.",
-        "Neighbours cannot read your registers or your RAM."
-      ],
+      "bullets": ["The hypervisor carves physical servers into isolated VMs.", "Nitro offloads networking and storage to dedicated hardware.", "Each instance gets its own kernel, memory, and disk.", "Neighbours cannot read your registers or your RAM."],
       "panel": {
         "title": "Nitro vs Xen",
-        "bullets": [
-          "Nitro: near bare-metal performance",
-          "Xen: legacy HVM instances",
-          "Both: strong VM isolation"
-        ]
+        "bullets": ["Nitro: near bare-metal performance", "Xen: legacy HVM instances", "Both: strong VM isolation"]
       },
       "accent": "#1c7ed6",
       "transition": "cover",
@@ -133,13 +124,7 @@
       "layout": "flow",
       "eyebrow": "THE PATH OF A REQUEST",
       "title": "A request reaches your instance",
-      "steps": [
-        "Internet",
-        "Internet Gateway",
-        "Load Balancer",
-        "Security Group",
-        "EC2 instance"
-      ],
+      "steps": ["Internet", "Internet Gateway", "Load Balancer", "Security Group", "EC2 instance"],
       "subtitle": "Each hop is a policy decision — and a place where things can go wrong.",
       "accent": "#0ca678",
       "transition": "dissolve",
@@ -164,20 +149,10 @@
       "layout": "split",
       "eyebrow": "BLOCK STORAGE",
       "title": "EBS: disks that outlive the VM",
-      "bullets": [
-        "Volumes live independently of the instance.",
-        "Snapshots are incremental and stored in S3.",
-        "gp3 gives you a baseline of 3,000 IOPS for free.",
-        "A volume lives in one AZ — copy it with snapshots."
-      ],
+      "bullets": ["Volumes live independently of the instance.", "Snapshots are incremental and stored in S3.", "gp3 gives you a baseline of 3,000 IOPS for free.", "A volume lives in one AZ — copy it with snapshots."],
       "panel": {
         "title": "Volume types",
-        "bullets": [
-          "gp3 — general purpose SSD",
-          "io2 — high IOPS, low latency",
-          "st1 — throughput for big data",
-          "Snapshots — incremental backups"
-        ]
+        "bullets": ["gp3 — general purpose SSD", "io2 — high IOPS, low latency", "st1 — throughput for big data", "Snapshots — incremental backups"]
       },
       "accent": "#f59f00",
       "transition": "flip",
@@ -187,19 +162,10 @@
       "layout": "split",
       "eyebrow": "LOCAL VS NETWORK",
       "title": "Instance store vs EBS",
-      "bullets": [
-        "Instance store is NVMe attached to the host — fast, ephemeral.",
-        "EBS is replicated network storage — durable, flexible.",
-        "Instance store is wiped on stop or terminate.",
-        "EBS persists and can be reattached."
-      ],
+      "bullets": ["Instance store is NVMe attached to the host — fast, ephemeral.", "EBS is replicated network storage — durable, flexible.", "Instance store is wiped on stop or terminate.", "EBS persists and can be reattached."],
       "panel": {
         "title": "Pick EBS when...",
-        "bullets": [
-          "Data must survive a reboot",
-          "You need snapshots",
-          "You want to resize or move it"
-        ]
+        "bullets": ["Data must survive a reboot", "You need snapshots", "You want to resize or move it"]
       },
       "accent": "#e64980",
       "transition": "push",
@@ -218,13 +184,7 @@
       "layout": "flow",
       "eyebrow": "AUTOSCALING",
       "title": "Auto Scaling closes the loop",
-      "steps": [
-        "CloudWatch metric",
-        "Scaling policy",
-        "Launch template",
-        "New instance",
-        "Load balancer"
-      ],
+      "steps": ["CloudWatch metric", "Scaling policy", "Launch template", "New instance", "Load balancer"],
       "subtitle": "Observe, decide, launch, register — then measure again.",
       "accent": "#7048e8",
       "transition": "pop",
@@ -297,20 +257,10 @@
       "layout": "split",
       "eyebrow": "OBSERVABILITY",
       "title": "Observe everything with CloudWatch",
-      "bullets": [
-        "Metrics arrive every minute — detailed monitoring gives you seconds.",
-        "The CloudWatch agent ships logs and custom metrics.",
-        "Alarms can notify, reboot, or trigger Auto Scaling.",
-        "Dashboards turn symptoms into a shared picture."
-      ],
+      "bullets": ["Metrics arrive every minute — detailed monitoring gives you seconds.", "The CloudWatch agent ships logs and custom metrics.", "Alarms can notify, reboot, or trigger Auto Scaling.", "Dashboards turn symptoms into a shared picture."],
       "panel": {
         "title": "Signals to watch",
-        "bullets": [
-          "CPUUtilization",
-          "StatusCheckFailed",
-          "NetworkIn / NetworkOut",
-          "EBS burst balance"
-        ]
+        "bullets": ["CPUUtilization", "StatusCheckFailed", "NetworkIn / NetworkOut", "EBS burst balance"]
       },
       "accent": "#e64980",
       "transition": "dissolve",
