@@ -5,10 +5,22 @@ const OSS_FONTS_FALLBACK = "/";
 /**
  * Custom vite plugin for auto-prefixing `EXCALIDRAW_ASSET_PATH` woff2 fonts in `excalidraw-app`.
  *
+ * @param {{ base?: string, localFonts?: boolean }} options
  * @returns {import("vite").PluginOption}
  */
-module.exports.woff2BrowserPlugin = () => {
+module.exports.woff2BrowserPlugin = ({
+  base = "/",
+  localFonts = false,
+} = {}) => {
   let isDev;
+
+  // fonts are served from the app itself when `localFonts` is on — the app is
+  // then fully self-hosted and doesn't depend on the upstream CDN
+  const fontUrl = (path) =>
+    localFonts ? `${base}${path}` : `${OSS_FONTS_CDN}${path}`;
+  const assetPaths = localFonts
+    ? [OSS_FONTS_FALLBACK]
+    : [OSS_FONTS_CDN, OSS_FONTS_FALLBACK];
 
   return {
     name: "woff2BrowserPlugin",
@@ -19,7 +31,9 @@ module.exports.woff2BrowserPlugin = () => {
     transform(code, id) {
       // using copy / replace as fonts defined in the `.css` don't have to be manually copied over (vite/rollup does this automatically),
       // but at the same time can't be easily prefixed with the `EXCALIDRAW_ASSET_PATH` only for the `excalidraw-app`
-      if (!isDev && id.endsWith("/excalidraw/fonts/fonts.css")) {
+      // with `localFonts` we keep the original stylesheet, so every font is
+      // bundled with the app instead of being fetched from the upstream CDN
+      if (!isDev && !localFonts && id.endsWith("/excalidraw/fonts/fonts.css")) {
         return `/* WARN: The following content is generated during excalidraw-app build */
 
       @font-face {
@@ -68,16 +82,15 @@ module.exports.woff2BrowserPlugin = () => {
           "<!-- PLACEHOLDER:EXCALIDRAW_APP_FONTS -->",
           `<script>
         // point into our CDN in prod, fallback to root (excalidraw.com) domain in case of issues
-        window.EXCALIDRAW_ASSET_PATH = [
-          "${OSS_FONTS_CDN}",
-          "${OSS_FONTS_FALLBACK}",
-        ];
+        window.EXCALIDRAW_ASSET_PATH = ${JSON.stringify(assetPaths)};
       </script>
 
       <!-- Preload all default fonts to avoid swap on init -->
       <link
         rel="preload"
-        href="${OSS_FONTS_CDN}fonts/Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+        href="${fontUrl(
+          "fonts/Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2",
+        )}"
         as="font"
         type="font/woff2"
         crossorigin="anonymous"
@@ -85,21 +98,25 @@ module.exports.woff2BrowserPlugin = () => {
       <!-- For Nunito only preload the latin range, which should be good enough for now -->
       <link
         rel="preload"
-        href="${OSS_FONTS_CDN}fonts/Nunito/Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTQ3j6zbXWjgeg.woff2"
+        href="${fontUrl(
+          "fonts/Nunito/Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTQ3j6zbXWjgeg.woff2",
+        )}"
         as="font"
         type="font/woff2"
         crossorigin="anonymous"
       />
       <link
         rel="preload"
-        href="${OSS_FONTS_CDN}fonts/Assistant/Assistant-SemiBold.woff2"
+        href="${fontUrl("fonts/Assistant/Assistant-SemiBold.woff2")}"
         as="font"
         type="font/woff2"
         crossorigin="anonymous"
       />
       <link
         rel="preload"
-        href="${OSS_FONTS_CDN}fonts/ComicShanns/ComicShanns-Regular-279a7b317d12eb88de06167bd672b4b4.woff2"
+        href="${fontUrl(
+          "fonts/ComicShanns/ComicShanns-Regular-279a7b317d12eb88de06167bd672b4b4.woff2",
+        )}"
         as="font"
         type="font/woff2"
         crossorigin="anonymous"
