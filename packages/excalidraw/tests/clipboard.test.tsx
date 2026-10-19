@@ -355,7 +355,10 @@ describe("paste text as a single element", () => {
       expect(getRight(text)).toBeLessThanOrEqual(
         700 - TEXT_VIEWPORT_PADDING + 0.01,
       );
-      expect(h.history.undoStack.length).toBe(undoSteps + 1);
+      // the paste is captured for undo on the next tick, so wait for it
+      await waitFor(() => {
+        expect(h.history.undoStack.length).toBe(undoSteps + 1);
+      });
     });
   });
   it("should move a pasted text that wraps into view, not the view", async () => {
