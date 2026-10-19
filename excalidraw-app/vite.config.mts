@@ -8,11 +8,79 @@ import checker from "vite-plugin-checker";
 import { createHtmlPlugin } from "vite-plugin-html";
 import Sitemap from "vite-plugin-sitemap";
 import { woff2BrowserPlugin } from "../scripts/woff2/woff2-vite-plugins";
+
+import type { Plugin } from "vite";
+/** ensures the base path is a leading-slash, trailing-slash path */
+const normalizeBase = (value: string) => {
+  if (!value || value === "/") {
+    return "/";
+  }
+  const withLeadingSlash = value.startsWith("/") ? value : `/${value}`;
+  return withLeadingSlash.endsWith("/")
+    ? withLeadingSlash
+    : `${withLeadingSlash}/`;
+};
+
+/**
+ * GitHub Pages serves `404.html` for any unknown path. The app is a single
+ * page, so we redirect to the entry point and keep the original path in the
+ * hash (the app reads it back on boot).
+ */
+const spaFallbackPlugin = (base: string): Plugin => ({
+  name: "excalidraw-spa-fallback",
+  apply: "build",
+  generateBundle() {
+    this.emitFile({
+      type: "asset",
+      fileName: "404.html",
+      source: `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Excalidraw</title>
+    <script>
+      (function () {
+        var base = ${JSON.stringify(base)};
+        var l = window.location;
+        var path = l.pathname.indexOf(base) === 0
+          ? l.pathname.slice(base.length)
+          : l.pathname.slice(1);
+        l.replace(base + "#" + path + l.search + l.hash);
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Redirecting&hellip;</p>
+    <a href="${base}">Open Excalidraw</a>
+  </body>
+</html>
+`,
+    });
+  },
+});
+
 export default defineConfig(({ mode }) => {
   // To load .env variables
   const envVars = loadEnv(mode, `../`);
+
+  /**
+   * Public base path of the deployment.
+   *
+   * GitHub Pages serves the app from a sub-path (`/<repo>/`), so the base
+   * has to match or the assets 404. Set `VITE_APP_BASE_PATH` to override it
+   * (e.g. `/Exalidraw-Presentation/`). Defaults to the site root.
+   */
+  const base = normalizeBase(
+    process.env.VITE_APP_BASE_PATH ||
+      envVars.VITE_APP_BASE_PATH ||
+      (process.env.GITHUB_REPOSITORY
+        ? `/${process.env.GITHUB_REPOSITORY.split("/")[1]}/`
+        : "/"),
+  );
+
   // https://vitejs.dev/config/
   return {
+    base,
     server: {
       port: Number(envVars.VITE_APP_PORT || 3000),
       // open the browser
@@ -133,13 +201,21 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       Sitemap({
-        hostname: "https://excalidraw.com",
+        hostname:
+          process.env.VITE_APP_HOSTNAME ||
+          envVars.VITE_APP_HOSTNAME ||
+          "https://excalidraw.com",
         outDir: "build",
         changefreq: "monthly",
         // its static in public folder
         generateRobotsTxt: false,
       }),
-      woff2BrowserPlugin(),
+      woff2BrowserPlugin({
+        base,
+        localFonts:
+          process.env.VITE_APP_LOCAL_FONTS === "true" ||
+          envVars.VITE_APP_LOCAL_FONTS === "true",
+      }),
       react(),
       checker({
         typescript: true,
@@ -252,7 +328,7 @@ export default defineConfig(({ mode }) => {
               type: "image/png",
             },
           ],
-          start_url: "/",
+          start_url: base,
           id: "excalidraw",
           display: "standalone",
           theme_color: "#121212",
@@ -266,7 +342,7 @@ export default defineConfig(({ mode }) => {
             },
           ],
           share_target: {
-            action: "/web-share-target",
+            action: `${base}web-share-target`,
             method: "POST",
             enctype: "multipart/form-data",
             params: {
@@ -319,7 +395,9 @@ export default defineConfig(({ mode }) => {
       createHtmlPlugin({
         minify: true,
       }),
+      spaFallbackPlugin(base),
     ],
     publicDir: "../public",
   };
 });
+
