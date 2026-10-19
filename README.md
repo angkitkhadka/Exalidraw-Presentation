@@ -59,6 +59,8 @@ See [`excalidraw-app/presentation/README.md`](excalidraw-app/presentation/README
 
 The **Canvases** tab keeps as many drawings as you like in the browser. Save the current canvas under a name, open a saved one, start a new one, rename or delete them. Everything is stored locally, in IndexedDB, and survives a reload. Clearing your browser data removes it, so nothing is ever uploaded anywhere.
 
+The tab also holds the built-in demo: a hundred slides on how the web works, with transitions, hand-drawn draw-in animations and speaker notes. It is regenerated every time, so it can never be deleted or lost.
+
 See [`excalidraw-app/canvases.md`](excalidraw-app/canvases.md) for the details.
 
 ## Local development

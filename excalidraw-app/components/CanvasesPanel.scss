@@ -104,6 +104,63 @@
       }
     }
 
+    &__demo {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 0.875rem;
+      border-radius: 0.625rem;
+      border: 1px solid var(--color-primary, #4f46e5);
+      background: var(--color-surface-low, rgba(79, 70, 229, 0.06));
+    }
+
+    &__demoHead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    &__demoBadge {
+      font-size: 0.625rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-surface-lowest, #fff);
+      background: var(--color-primary, #4f46e5);
+      border-radius: 0.25rem;
+      padding: 0.125rem 0.375rem;
+    }
+
+    &__demoCount {
+      font-size: 0.6875rem;
+      opacity: 0.65;
+    }
+
+    &__demoTitle {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    &__demoText {
+      margin: 0;
+      font-size: 0.75rem;
+      line-height: 1.5;
+      opacity: 0.75;
+    }
+
+    &__btn--demo {
+      align-self: stretch;
+      background: var(--color-primary, #4f46e5);
+      border-color: transparent;
+      color: var(--color-surface-lowest, #fff);
+
+      &:hover:not(:disabled) {
+        background: var(--color-primary-hover, #4f46e5);
+      }
+    }
+
     &__list {
       flex: 1 1 auto;
       min-height: 0;

@@ -44,7 +44,7 @@ const DEFAULTS = {
   elementDuration: 450,
   groupDuration: 3600,
   maxTotalDuration: 2400,
-  minElementDuration: 110,
+  minElementDuration: 60,
   idPrefix: "exc-typo",
 };
 

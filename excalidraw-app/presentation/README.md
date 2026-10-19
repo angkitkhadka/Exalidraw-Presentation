@@ -9,6 +9,14 @@ A local-first clone of the Excalidraw+ presentation feature. Everything is deriv
 - **Builds are element reveal steps.** Elements can be assigned a step (`customData.presentationStep`) and appear one step at a time.
 - **Annotations are normal scene elements**, so drawing during a presentation works with the regular Excalidraw tools (and is undoable).
 
+## The built-in demo
+
+The app ships with a demo deck of a hundred slides, on how the web works. Open the **Canvases** tab and press **Open and present the demo**.
+
+The demo is never stored. It is rebuilt from its source every time, so it can neither be deleted nor lost. It has a transition on every slide, a hand-drawn draw-in animation, reveal steps on a few slides, and speaker notes throughout.
+
+The source is `demoContent.ts` (the words) and `demoDeck.ts` (the layouts), and the layouts are shared with nothing else, so the deck can be edited freely.
+
 ## Making a deck
 
 1. Press **Add slide** in the panel (or draw a frame on the canvas).
@@ -137,9 +145,12 @@ Undo/redo and the usual tool shortcuts keep working while presenting. Ink drawn 
 | `SlideDrawIn.tsx` | Aligned animated SVG overlay used by the presenter |
 | `slideSvg.ts` | Cropped, cached slide SVGs + content hash + neighbour prefetch |
 | `deck.ts` | Deck-spec → frames/elements compiler (used by tools/assistants) |
+| `demoContent.ts` | The hundred slides of the built-in demo deck |
+| `demoDeck.ts` | The layouts the demo is drawn with |
 | `slides.test.ts` | Unit tests for ordering, grouping, steps, settings, reordering |
 | `animate.test.ts` | Unit tests for the animation injection and element ordering |
 | `deck.test.ts` | Unit tests for the deck spec parser, layouts, and demo deck |
+| `demoDeck.test.ts` | Unit tests for the built-in demo deck |
 
 Per-slide metadata lives on the frame:
 

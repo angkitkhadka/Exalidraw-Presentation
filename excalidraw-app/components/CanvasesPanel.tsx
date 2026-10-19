@@ -2,7 +2,7 @@ import { useExcalidrawAPI } from "@excalidraw/excalidraw";
 import { CaptureUpdateAction } from "@excalidraw/element";
 import clsx from "clsx";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   checkIcon,
@@ -11,9 +11,12 @@ import {
   TrashIcon,
 } from "@excalidraw/excalidraw/components/icons";
 
+import { openConfirmModal } from "@excalidraw/excalidraw/components/OverwriteConfirm/OverwriteConfirmState";
+import { playerPlayIcon } from "@excalidraw/excalidraw/components/icons";
+
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 
-import { useAtom } from "../app-jotai";
+import { useAtom, useSetAtom } from "../app-jotai";
 import {
   currentCanvasIdAtom,
   currentCanvasNameAtom,
@@ -23,6 +26,12 @@ import {
   renameCanvas,
   saveCanvas,
 } from "../data/canvasStorage";
+import {
+  DEMO_SLIDES,
+  DEMO_TITLE,
+  openDemoScene,
+} from "../presentation/demoDeck";
+import { presentationAtom } from "../presentation/state";
 
 import "./CanvasesPanel.scss";
 
@@ -67,12 +76,14 @@ export const CanvasesPanel = () => {
 const CanvasesPanelInner = ({ api }: { api: ExcalidrawImperativeAPI }) => {
   const [currentId, setCurrentId] = useAtom(currentCanvasIdAtom);
   const [currentName, setCurrentName] = useAtom(currentCanvasNameAtom);
+  const setPresentation = useSetAtom(presentationAtom);
 
   const [canvases, setCanvases] = useState<CanvasSummary[]>([]);
   const [name, setName] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   const refresh = useCallback(async () => {
     setCanvases(await listCanvases());
@@ -133,6 +144,39 @@ const CanvasesPanelInner = ({ api }: { api: ExcalidrawImperativeAPI }) => {
     }
   };
 
+  /**
+   * Opens the built-in demo deck. It is never stored, so it can not be
+   * deleted or lost: it is rebuilt from its source every time.
+   */
+  const handleOpenDemo = async () => {
+    if (api.getSceneElements().length) {
+      const confirmed = await openConfirmModal({
+        title: "Open the demo deck?",
+        description:
+          "The demo replaces the canvas you are working on. Save it first if you want to keep it.",
+        actionLabel: "Open the demo",
+        color: "danger",
+      });
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    setBusy(true);
+    try {
+      await openDemoScene(api, rootRef.current?.ownerDocument);
+      setCurrentId(null);
+      setCurrentName("");
+      setName("");
+      // jump straight into the presentation
+      setPresentation({ active: true, startIndex: 0 });
+    } catch (error: any) {
+      toast(error?.message || "Could not open the demo deck");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleNew = () => {
     const appState = api.getAppState();
     api.updateScene({
@@ -168,7 +212,7 @@ const CanvasesPanelInner = ({ api }: { api: ExcalidrawImperativeAPI }) => {
   };
 
   return (
-    <div className="exc-canvases">
+    <div className="exc-canvases" ref={rootRef}>
       <div className="exc-canvases__header">
         <div>
           <h3 className="exc-canvases__title">Canvases</h3>
@@ -213,6 +257,30 @@ const CanvasesPanelInner = ({ api }: { api: ExcalidrawImperativeAPI }) => {
         >
           {checkIcon}
           {currentId ? "Update" : "Save"}
+        </button>
+      </div>
+
+      <div className="exc-canvases__demo">
+        <div className="exc-canvases__demoHead">
+          <span className="exc-canvases__demoBadge">Demo</span>
+          <span className="exc-canvases__demoCount">
+            {DEMO_SLIDES.length} slides
+          </span>
+        </div>
+        <div className="exc-canvases__demoTitle">{DEMO_TITLE}</div>
+        <p className="exc-canvases__demoText">
+          A built-in deck with transitions, hand-drawn draw-in animations and
+          speaker notes. It is regenerated every time, so it can never be lost
+          or deleted.
+        </p>
+        <button
+          type="button"
+          className="exc-canvases__btn exc-canvases__btn--demo"
+          disabled={busy}
+          onClick={handleOpenDemo}
+        >
+          {playerPlayIcon}
+          Open and present the demo
         </button>
       </div>
 
