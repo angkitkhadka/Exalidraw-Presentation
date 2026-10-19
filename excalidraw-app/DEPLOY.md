@@ -28,6 +28,18 @@ Pages has to be switched on for the repository:
 
 The first push to `master` then publishes the site. You can also trigger it manually from the **Actions → Deploy to GitHub Pages → Run workflow** menu.
 
+## Custom domain
+
+The site is published to `presentation.angkit.com.np`. A custom domain is configured under **Settings → Pages → Custom domain**, and it needs a matching DNS record, otherwise GitHub redirects the `github.io` address to a host that does not resolve.
+
+For a domain on Cloudflare, add:
+
+| Type  | Name           | Target                   | Proxy    |
+| ----- | -------------- | ------------------------ | -------- |
+| CNAME | `presentation` | `angkitkhadka.github.io` | DNS only |
+
+Leave the proxy off — GitHub serves the site over TLS for the custom domain once the record is in place, and it issues the certificate itself. To go back to the `github.io` address, remove the custom domain under **Settings → Pages**.
+
 ## Building it yourself
 
 ```bash
