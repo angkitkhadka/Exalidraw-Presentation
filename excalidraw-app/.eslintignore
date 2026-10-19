@@ -1,0 +1,6 @@
+# the dev server runs eslint from this directory, so the build output has to
+# be ignored here as well — the root .eslintignore is not picked up from here
+build/
+dist/
+dev-dist/
+node_modules/
