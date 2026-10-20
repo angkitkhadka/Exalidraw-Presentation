@@ -11,11 +11,21 @@ A local-first clone of the Excalidraw+ presentation feature. Everything is deriv
 
 ## The built-in demo
 
-The app ships with a demo deck of a hundred slides, on how the web works. Open the **Canvases** tab and press **Open and present the demo**.
+The app ships with a demo deck of twenty-six slides, on how a page load works from the first lookup to the paint. Open the **Canvases** tab and press **Open and present the demo**.
 
 The demo is never stored. It is rebuilt from its source every time, so it can neither be deleted nor lost. It has a transition on every slide, a hand-drawn draw-in animation, reveal steps on a few slides, and speaker notes throughout.
 
 The source is `demoContent.ts` (the words) and `demoDeck.ts` (the layouts), and the layouts are shared with nothing else, so the deck can be edited freely.
+
+### House style
+
+`DECK-RULES.md` holds the rules a deck in this project follows, so that a deck does not read as machine written. They cover the argument, the layout and the wording. `deckRules.ts` checks the mechanical half of them, and `deckRules.test.ts` runs that check over the demo, so a deck that breaks a rule fails the test.
+
+| File | Purpose |
+| --- | --- |
+| `DECK-RULES.md` | The rules a deck here follows, and how the demo meets them |
+| `deckRules.ts` | The checks for the rules that can be checked mechanically |
+| `deckRules.test.ts` | Runs the checks over the demo, and over deliberately broken decks |
 
 ## Making a deck
 
@@ -88,11 +98,10 @@ Undo/redo and the usual tool shortcuts keep working while presenting. Ink drawn 
 | `animate.ts` | Draw-in animation: SVG export → injected SMIL (port of excalidraw-animate) |
 | `SlideDrawIn.tsx` | Aligned animated SVG overlay used by the presenter |
 | `slideSvg.ts` | Cropped, cached slide SVGs + content hash + neighbour prefetch |
-| `demoContent.ts` | The hundred slides of the built-in demo deck |
+| `demoContent.ts` | The twenty-six slides of the built-in demo deck |
 | `demoDeck.ts` | The layouts the demo is drawn with, and the `.excalidraw` export |
 | `slides.test.ts` | Unit tests for ordering, grouping, steps, settings, reordering |
 | `animate.test.ts` | Unit tests for the animation injection and element ordering |
-| `demoDeck.test.ts` | Unit tests for the built-in demo deck |
 
 Per-slide metadata lives on the frame:
 
