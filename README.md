@@ -16,7 +16,7 @@
 
 <div align="center">
   <figure>
-    <a href="http://presentation.angkit.com.np/" target="_blank" rel="noopener">
+    <a href="https://presentation.angkit.com.np/" target="_blank" rel="noopener">
       <img src="https://raw.githubusercontent.com/excalidraw/excalidraw/master/public/og-image-3.png" alt="Excalidraw" />
     </a>
     <figcaption>
@@ -90,7 +90,7 @@ Useful commands:
 
 ## Deploying to GitHub Pages
 
-The repository ships with a workflow that builds the app and publishes it to GitHub Pages on every push to `master`. The app is served from <http://presentation.angkit.com.np/>, and from <https://angkitkhadka.github.io/Exalidraw-Presentation/>.
+The repository ships with a workflow that builds the app and publishes it to GitHub Pages on every push to `master`. The app is served from <https://presentation.angkit.com.np/>, and from <https://angkitkhadka.github.io/Exalidraw-Presentation/>.
 
 Enable it once under **Settings → Pages → Build and deployment → Source: GitHub Actions**. See [`excalidraw-app/DEPLOY.md`](excalidraw-app/DEPLOY.md) for the details, the custom domain setup and building the site yourself.
 
