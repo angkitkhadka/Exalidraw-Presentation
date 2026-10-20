@@ -12,6 +12,7 @@ import { serializeAsJSON } from "@excalidraw/excalidraw/data/json";
 import type { ExcalidrawElementSkeleton } from "@excalidraw/element";
 import type { FontFamilyValues, TextAlign } from "@excalidraw/element/types";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import type { LocalPoint } from "@excalidraw/math";
 
 import { DEMO_SLIDES, DEMO_TITLE } from "./demoContent";
 import { SLIDE_TRANSITIONS } from "./slides";
@@ -22,13 +23,23 @@ import type { SlidePresentationData, SlideTransition } from "./slides";
 /**
  * The built-in demo deck.
  *
- * It is a real scene: 100 frames laid out in a grid, each one a slide with
- * its own transition, notes and build steps. Opening it loads the scene into
- * the editor, so it can be presented like any other deck (and it can be
- * copied into a canvas of your own).
+ * It is a real scene: one frame per slide, laid out in a grid, each frame
+ * carrying its own transition, notes and reveal steps. Opening it loads the
+ * scene into the editor, so it can be presented like any other deck, and it
+ * can be downloaded as a normal `.excalidraw` file.
  *
- * The design is deliberately restrained: one accent colour, a small type
- * scale and a handful of layouts, so the hundred slides read as one deck.
+ * The design follows `DECK-RULES.md`:
+ *
+ * - One type treatment. Nunito carries every label, Cascadia is reserved
+ *   for code, because a protocol transcript is a different kind of text.
+ * - No accent bars under titles and no capitalised eyebrow labels. A title
+ *   sits on the page and the whitespace below it does the separating.
+ * - No rounded cards, no numbered circles, no grid of statistics. Content
+ *   is set as text, and where a shape is needed it is a hairline rule or a
+ *   square block.
+ * - The slides take different forms: a statement, a diagram, a table, a
+ *   chart, a comparison, a quote, a number, code. Consecutive slides rarely
+ *   use the same one.
  */
 
 const SLIDE_W = 1280;
@@ -37,17 +48,17 @@ const MARGIN = 88;
 const CONTENT_W = SLIDE_W - MARGIN * 2;
 
 /**
- * The colour scheme the whole project uses.
+ * The colour scheme the whole project uses, from `excalidraw-app/colors.md`.
  *
- * - the dark blue backs the title, the dividers and the closing slide
+ * - the dark blue backs the cover, the dividers and the closing slide
  * - white backs the content slides, and is the text colour on the dark ones
  * - the logo blue is the colour of the slide titles
- * - the bright blue is for highlights, icons and key takeaways
- * - near black is the body text
- * - the light grey fills cards and code boxes
- * - the border grey draws borders and dividers
- * - orange and teal are the second and third accents, for diagrams
- * - red is only used for risks and errors
+ * - the bright blue is for emphasis and for the marks in a diagram
+ * - near-black is the body colour
+ * - the light grey fills code blocks and table headers
+ * - the border grey draws rules, axes and dividers
+ * - orange and teal are the second and third diagram colours
+ * - red is only used for errors
  */
 const DARK = "#142636";
 const WHITE = "#ffffff";
@@ -60,7 +71,6 @@ const ORANGE = "#ffab87";
 const TEAL = "#6ec0c0";
 const RED = "#d85a77";
 
-const LILITA = FONT_FAMILY["Lilita One"];
 const NUNITO = FONT_FAMILY.Nunito;
 const CASCADIA = FONT_FAMILY.Cascadia;
 
@@ -83,43 +93,35 @@ const mix = (hex: string, amount: number) => {
 };
 
 const palette = {
-  /** the dark blue, for the title, divider and closing slides */
+  /** the dark blue, for the cover, divider and closing slides */
   dark: DARK,
   white: WHITE,
   /** the logo blue, for the slide titles */
   title: LOGO,
-  /** the bright blue, for highlights, icons and key takeaways */
+  /** the bright blue, for emphasis and diagram marks */
   accent: ACCENT,
   /** the body colour */
   ink: INK,
   /** secondary text */
   muted: mix(INK, 0.45),
-  /** the faintest text, the footer */
-  faint: mix(INK, 0.3),
-  /** card and code box fills */
+  /** the faintest text, the footer and the source line */
+  faint: mix(INK, 0.32),
+  /** code and table header fills */
   surface: SURFACE,
-  /** borders and dividers */
+  /** rules, axes and dividers */
   border: BORDER,
-  /** the second accent, for diagrams */
+  /** the second diagram colour */
   orange: ORANGE,
-  /** the third accent, for diagrams */
+  /** the third diagram colour */
   teal: TEAL,
-  /** only for risks and errors */
+  /** only for errors */
   red: RED,
-  /** a pale accent, for the soft fills */
-  tint: mix(ACCENT, 0.1),
-  /** a slightly stronger accent fill */
-  wash: mix(ACCENT, 0.2),
-  /** a pale orange */
-  orangeTint: mix(ORANGE, 0.14),
-  /** a pale teal */
-  tealTint: mix(TEAL, 0.14),
-  /** a pale red, for the risk notes */
-  redTint: mix(RED, 0.1),
-  /** a pale logo blue */
-  titleTint: mix(LOGO, 0.1),
+  /** a pale accent, for diagram fills */
+  accentTint: mix(ACCENT, 0.12),
   /** the light text used on the dark slides */
-  onDark: mix(WHITE, 0.78),
+  onDark: mix(WHITE, 0.8),
+  /** the faintest text on the dark slides */
+  onDarkFaint: mix(WHITE, 0.55),
 };
 
 // ---------------------------------------------------------------------------
@@ -144,41 +146,18 @@ const LINE_HEIGHT: Record<number, number> = {
   56: 70,
   64: 80,
   72: 90,
-  84: 104,
   96: 118,
-  120: 146,
-  180: 216,
 };
 
 const lh = (size: number) => LINE_HEIGHT[size] ?? Math.round(size * 1.26);
 
 /**
- * Wraps `value` so that it fits into `maxWidth` pixels at the given size.
- */
-const fit = (
-  value: string,
-  maxWidth: number,
-  size: number,
-  font: number = NUNITO,
-) => {
-  const factor = CHAR_FACTOR[font] ?? 0.5;
-  const maxChars = Math.max(8, Math.floor((maxWidth * 0.96) / (size * factor)));
-  return wrap(value, maxChars);
-};
-
-const lineCount = (value: string) => value.split("\n").length;
-
-const textBlockHeight = (value: string, size: number) =>
-  lineCount(value) * lh(size);
-
-/**
  * Average glyph width as a fraction of the font size, per family. Used to
- * turn a pixel budget into a character budget, so text is wrapped against the
- * space it actually has.
+ * turn a pixel budget into a character budget, so text is wrapped against
+ * the space it actually has.
  */
 const CHAR_FACTOR: Record<number, number> = {
   [NUNITO]: 0.475,
-  [LILITA]: 0.505,
   [CASCADIA]: 0.6,
 };
 
@@ -208,6 +187,25 @@ const wrap = (value: string, maxChars: number) => {
   return lines.join("\n");
 };
 
+/**
+ * Wraps `value` so that it fits into `maxWidth` pixels at the given size.
+ */
+const fit = (
+  value: string,
+  maxWidth: number,
+  size: number,
+  font: number = NUNITO,
+) => {
+  const factor = CHAR_FACTOR[font] ?? 0.5;
+  const maxChars = Math.max(8, Math.floor((maxWidth * 0.96) / (size * factor)));
+  return wrap(value, maxChars);
+};
+
+const lineCount = (value: string) => value.split("\n").length;
+
+const textBlockHeight = (value: string, size: number) =>
+  lineCount(value) * lh(size);
+
 // ---------------------------------------------------------------------------
 // drawing context
 // ---------------------------------------------------------------------------
@@ -220,6 +218,8 @@ type Ctx = {
   prefix: string;
   els: ExcalidrawElementSkeleton[];
   ids: string[];
+  /** true on the dark slides, where the text colours flip */
+  dark: boolean;
 };
 
 const idFor = (ctx: Ctx, name: string) => `${ctx.prefix}-${name}`;
@@ -271,12 +271,13 @@ type RectOpts = {
   stroke?: string;
   fill?: string;
   strokeWidth?: number;
-  rounded?: boolean;
   label?: string;
   labelSize?: number;
   labelFont?: FontFamilyValues;
   labelColor?: string;
   step?: number;
+  /** square corners, for the blocks that are not cards */
+  square?: boolean;
 };
 
 const rect = (
@@ -299,9 +300,7 @@ const rect = (
     backgroundColor: opts.fill ?? "transparent",
     fillStyle: "solid",
     strokeWidth: opts.strokeWidth ?? 2,
-    roughness: 0,
-    roundness:
-      opts.rounded === false ? null : { type: ROUNDNESS.ADAPTIVE_RADIUS },
+    roundness: opts.square ? null : { type: ROUNDNESS.ADAPTIVE_RADIUS },
     opacity: 100,
     ...(opts.label
       ? {
@@ -316,147 +315,111 @@ const rect = (
     ...stepData(opts.step),
   });
 
-type EllipseOpts = {
-  stroke?: string;
-  fill?: string;
-  strokeWidth?: number;
-  label?: string;
-  labelSize?: number;
-  labelFont?: FontFamilyValues;
-  labelColor?: string;
-  step?: number;
-};
-
-const ellipse = (
+/** A hairline rule, the only kind of divider the deck uses. */
+const rule = (
   ctx: Ctx,
   name: string,
   x: number,
   y: number,
   width: number,
-  height: number,
-  opts: EllipseOpts = {},
+  color: string = palette.border,
+  strokeWidth: number = 1,
 ) =>
   add(ctx, {
-    type: "ellipse",
+    type: "line",
     id: idFor(ctx, name),
     x: ctx.ox + x,
     y: ctx.oy + y,
     width,
-    height,
-    strokeColor: opts.stroke ?? "transparent",
-    backgroundColor: opts.fill ?? "transparent",
-    fillStyle: "solid",
-    strokeWidth: opts.strokeWidth ?? 2,
+    height: 0,
+    strokeColor: color,
+    strokeWidth,
     roughness: 0,
-    opacity: 100,
-    ...(opts.label
-      ? {
-          label: {
-            text: opts.label,
-            fontSize: opts.labelSize ?? 24,
-            fontFamily: opts.labelFont ?? NUNITO,
-            strokeColor: opts.labelColor ?? palette.ink,
-          },
-        }
-      : {}),
-    ...stepData(opts.step),
+    points: [
+      [0, 0],
+      [width, 0],
+    ] as LocalPoint[],
   });
 
-const arrow = (
+/** A vertical hairline, for separating two columns. */
+const vrule = (
   ctx: Ctx,
   name: string,
   x: number,
   y: number,
-  dx: number,
-  dy: number,
-  color: string,
-  step?: number,
+  height: number,
+  color: string = palette.border,
+  strokeWidth: number = 1,
 ) =>
   add(ctx, {
-    type: "arrow",
+    type: "line",
     id: idFor(ctx, name),
     x: ctx.ox + x,
     y: ctx.oy + y,
-    width: dx,
-    height: dy,
+    width: 0,
+    height,
     strokeColor: color,
-    strokeWidth: 2,
+    strokeWidth,
     roughness: 0,
-    endArrowhead: "arrow",
-    ...stepData(step),
+    points: [
+      [0, 0],
+      [0, height],
+    ] as LocalPoint[],
   });
 
 // ---------------------------------------------------------------------------
 // shared furniture
 // ---------------------------------------------------------------------------
 
-/** Eyebrow + title + accent rule. Returns the Y coordinate below the rule. */
-const header = (ctx: Ctx, slide: DemoSlideSpec) => {
-  let y = 76;
-
-  if ("eyebrow" in slide && slide.eyebrow) {
-    text(ctx, "eyebrow", MARGIN, y, slide.eyebrow.toUpperCase(), {
-      size: 20,
-      color: palette.accent,
-      font: LILITA,
-    });
-    y += 30;
-  }
-
-  if ("title" in slide && slide.title) {
-    const title = fit(slide.title, CONTENT_W, 48, LILITA);
-    text(ctx, "title", MARGIN, y, title, {
-      size: 48,
-      font: LILITA,
-      color: palette.title,
-    });
-    y += textBlockHeight(title, 48) + 14;
-  }
-
-  rect(ctx, "rule", MARGIN, y, 88, 6, {
-    fill: palette.accent,
-    stroke: palette.accent,
-    strokeWidth: 1,
+/**
+ * The slide title. It sits alone at the top of the slide, with no rule
+ * under it and no label above it, and the space below it does the
+ * separating.
+ */
+const header = (ctx: Ctx, title: string) => {
+  const value = fit(title, CONTENT_W, 44);
+  text(ctx, "title", MARGIN, 76, value, {
+    size: 44,
+    color: palette.title,
   });
-
-  return y + 34;
+  return 76 + textBlockHeight(value, 44) + 30;
 };
 
+/** The footer: the deck name, the part, and the page number. */
 const footer = (ctx: Ctx) => {
-  rect(ctx, "footer-rule", MARGIN, 646, CONTENT_W, 2, {
-    fill: palette.border,
-    stroke: palette.border,
-    strokeWidth: 1,
-  });
+  const faint = ctx.dark ? palette.onDarkFaint : palette.faint;
+  rule(
+    ctx,
+    "footer-rule",
+    MARGIN,
+    646,
+    CONTENT_W,
+    ctx.dark ? mix(WHITE, 0.22) : palette.border,
+  );
   text(ctx, "footer-left", MARGIN, 660, `${DEMO_TITLE}  |  ${ctx.section}`, {
     size: 16,
-    color: palette.faint,
+    color: faint,
   });
   text(ctx, "footer-right", SLIDE_W - MARGIN, 660, String(ctx.index + 1), {
     size: 16,
-    color: palette.faint,
+    color: faint,
     align: "right",
   });
 };
 
-/** the dark blue that backs the title, divider and closing slides */
+/** The source line, under a slide that carries a number. */
+const source = (ctx: Ctx, value: string) => {
+  text(ctx, "source", MARGIN, 606, fit(`Source: ${value}`, CONTENT_W, 16), {
+    size: 16,
+    color: ctx.dark ? palette.onDarkFaint : palette.faint,
+  });
+};
+
+/** The dark blue that backs the cover, divider and closing slides. */
 const darkBackdrop = (ctx: Ctx) => {
   rect(ctx, "backdrop", 0, 0, SLIDE_W, SLIDE_H, {
     fill: palette.dark,
     stroke: palette.dark,
-    strokeWidth: 1,
-  });
-};
-
-/** A soft shape in the corner, so every slide has the same visual anchor. */
-const cornerDeco = (ctx: Ctx) => {
-  ellipse(ctx, "deco-ring", 1104, -120, 300, 300, {
-    stroke: palette.tint,
-    strokeWidth: 2,
-  });
-  ellipse(ctx, "deco-dot", 1216, 596, 44, 44, {
-    fill: palette.tint,
-    stroke: palette.tint,
     strokeWidth: 1,
   });
 };
@@ -471,861 +434,609 @@ const layoutCover = (ctx: Ctx, slide: DemoSlideSpec) => {
   }
 
   darkBackdrop(ctx);
-  ellipse(ctx, "cover-blob", 880, -170, 560, 560, {
-    fill: mix(DARK, 0.86),
-    stroke: mix(DARK, 0.7),
-    strokeWidth: 2,
-  });
-  ellipse(ctx, "cover-ring", 1010, 430, 260, 260, {
-    stroke: palette.accent,
-    strokeWidth: 3,
-  });
-  ellipse(ctx, "cover-dot", 1082, 502, 116, 116, {
-    fill: mix(DARK, 0.78),
-    stroke: palette.teal,
-    strokeWidth: 2,
-  });
 
-  rect(ctx, "cover-bar", MARGIN, 168, 72, 8, {
-    fill: palette.accent,
-    stroke: palette.accent,
-    strokeWidth: 1,
-  });
-
-  text(ctx, "cover-eyebrow", MARGIN, 200, "A FIELD GUIDE", {
-    size: 22,
-    color: palette.accent,
-    font: LILITA,
-  });
-
-  const title = fit(slide.title, 880, 96, LILITA);
-  text(ctx, "cover-title", MARGIN, 246, title, {
-    size: 96,
-    font: LILITA,
+  const title = fit(slide.title, CONTENT_W - 120, 72);
+  text(ctx, "cover-title", MARGIN, 220, title, {
+    size: 72,
     color: palette.white,
   });
 
-  const subtitle = fit(slide.subtitle, 820, 30);
-  text(
-    ctx,
-    "cover-subtitle",
-    MARGIN,
-    246 + textBlockHeight(title, 96) + 26,
-    subtitle,
-    {
-      size: 30,
-      color: palette.onDark,
-    },
-  );
-
-  if (slide.badge) {
-    const width = Math.max(240, slide.badge.length * 13 + 80);
-    rect(ctx, "cover-badge", MARGIN, 552, width, 60, {
-      fill: palette.accent,
-      stroke: palette.accent,
-      strokeWidth: 1,
-      label: slide.badge,
-      labelSize: 24,
-      labelFont: NUNITO,
-      labelColor: palette.white,
-    });
-  }
-
-  text(ctx, "cover-meta", MARGIN, 632, `${DEMO_SLIDES.length} slides`, {
-    size: 22,
+  const subtitleY = 220 + textBlockHeight(title, 72) + 40;
+  const subtitle = fit(slide.subtitle, CONTENT_W - 200, 28);
+  text(ctx, "cover-subtitle", MARGIN, subtitleY, subtitle, {
+    size: 28,
     color: palette.onDark,
   });
 };
 
-const layoutAgenda = (ctx: Ctx, slide: DemoSlideSpec) => {
-  if (slide.kind !== "agenda") {
+/**
+ * A single claim, set large, with nothing else on the slide. The form the
+ * rules call a plain sentence.
+ */
+const layoutStatement = (ctx: Ctx, slide: DemoSlideSpec) => {
+  if (slide.kind !== "statement") {
     return;
   }
 
-  const y0 = header(ctx, slide);
-  const columnWidth = (CONTENT_W - 56) / 2;
-  const perColumn = Math.ceil(slide.items.length / 2);
+  const value = fit(slide.text, CONTENT_W - 60, 44);
+  const height = textBlockHeight(value, 44);
 
-  slide.items.forEach((item, index) => {
-    const column = index < perColumn ? 0 : 1;
-    const row = index % perColumn;
-    const x = MARGIN + column * (columnWidth + 56);
-    const y = y0 + row * 66;
-
-    rect(ctx, `agenda-dot-${index}`, x, y + 4, 34, 34, {
-      fill: index % 2 === 0 ? palette.title : palette.accent,
-      stroke: index % 2 === 0 ? palette.title : palette.accent,
-      strokeWidth: 1,
-      label: String(index + 1),
-      labelSize: 18,
-      labelFont: LILITA,
-      labelColor: palette.white,
-    });
-
-    text(ctx, `agenda-label-${index}`, x + 50, y, item.label, {
-      size: 26,
-      font: LILITA,
-      color: palette.ink,
-    });
-    text(
-      ctx,
-      `agenda-detail-${index}`,
-      x + 50,
-      y + 32,
-      fit(item.detail, columnWidth - 50, 18),
-      {
-        size: 18,
-        color: palette.muted,
-      },
-    );
+  text(ctx, "statement-text", MARGIN, 250, value, {
+    size: 44,
+    color: palette.ink,
   });
 
-  footer(ctx);
+  if (slide.detail) {
+    const detail = fit(slide.detail, CONTENT_W - 200, 24);
+    text(ctx, "statement-detail", MARGIN, 250 + height + 44, detail, {
+      size: 24,
+      color: palette.muted,
+    });
+  }
 };
 
+/**
+ * A divider. The part number is set in the accent colour, the title in
+ * white, and the summary underneath. Nothing else, and no ornament.
+ */
 const layoutSection = (ctx: Ctx, slide: DemoSlideSpec) => {
   if (slide.kind !== "section") {
     return;
   }
 
   darkBackdrop(ctx);
-  rect(ctx, "section-card", 56, 56, SLIDE_W - 112, SLIDE_H - 112, {
-    fill: mix(DARK, 0.88),
-    stroke: mix(DARK, 0.72),
-    strokeWidth: 2,
-  });
-  ellipse(ctx, "section-ring", 940, 120, 250, 250, {
-    stroke: palette.accent,
-    strokeWidth: 3,
-  });
-  ellipse(ctx, "section-dot", 1010, 300, 110, 110, {
-    fill: mix(DARK, 0.78),
-    stroke: palette.teal,
-    strokeWidth: 2,
+
+  text(ctx, "section-marker", MARGIN, 250, slide.marker, {
+    size: 20,
+    color: palette.accent,
   });
 
-  text(ctx, "section-number", 118, 118, slide.number, {
-    size: 150,
-    font: LILITA,
-    color: palette.accent,
-  });
-  text(ctx, "section-kicker", 126, 344, "PART", {
-    size: 20,
-    font: LILITA,
-    color: palette.accent,
-  });
-  text(ctx, "section-title", 126, 372, fit(slide.title, 780, 56, LILITA), {
+  const title = fit(slide.title, CONTENT_W, 56);
+  const titleHeight = textBlockHeight(title, 56);
+
+  text(ctx, "section-title", MARGIN, 292, title, {
     size: 56,
-    font: LILITA,
     color: palette.white,
   });
-  text(ctx, "section-summary", 126, 452, fit(slide.summary, 860, 24), {
-    size: 24,
-    color: palette.onDark,
-  });
+  text(
+    ctx,
+    "section-summary",
+    MARGIN,
+    292 + titleHeight + 32,
+    fit(slide.summary, CONTENT_W - 200, 24),
+    {
+      size: 24,
+      color: palette.onDark,
+    },
+  );
 };
 
+/**
+ * Bullets, set as a list of sentences with a small square marker. The
+ * marker is a square rather than a circle, and there is no box around the
+ * list.
+ */
 const layoutBullets = (ctx: Ctx, slide: DemoSlideSpec) => {
   if (slide.kind !== "bullets") {
     return;
   }
 
-  cornerDeco(ctx);
-  let y = header(ctx, slide);
+  let y = header(ctx, slide.title);
 
   slide.bullets.forEach((bullet, index) => {
     const step = slide.reveal ? index + 2 : 1;
-    const value = fit(bullet.text, CONTENT_W - 36, 26);
-    const detail = bullet.detail
-      ? fit(bullet.detail, CONTENT_W - 36, 19)
-      : null;
-    const height =
-      textBlockHeight(value, 26) +
-      (detail ? textBlockHeight(detail, 19) + 6 : 0);
+    const value = fit(bullet, CONTENT_W - 44, 26);
+    const height = textBlockHeight(value, 26);
 
-    ellipse(ctx, `bullet-dot-${index}`, MARGIN + 4, y + 9, 12, 12, {
+    rect(ctx, `bullet-mark-${index}`, MARGIN + 2, y + 10, 10, 10, {
       fill: palette.accent,
       stroke: palette.accent,
       strokeWidth: 1,
       step,
     });
-    text(ctx, `bullet-text-${index}`, MARGIN + 36, y, value, {
+    text(ctx, `bullet-text-${index}`, MARGIN + 44, y, value, {
       size: 26,
       color: palette.ink,
       step,
     });
-    if (detail) {
-      text(ctx, `bullet-detail-${index}`, MARGIN + 36, y + lh(26) + 2, detail, {
-        size: 19,
-        color: palette.muted,
-        step,
-      });
-    }
 
-    y += Math.max(46, height) + 16;
+    y += height + 26;
   });
 
-  if (slide.note) {
-    rect(ctx, "note-box", MARGIN, 566, CONTENT_W, 56, {
-      fill: palette.redTint,
-      stroke: palette.redTint,
-      strokeWidth: 1,
-    });
-    rect(ctx, "note-bar", MARGIN, 566, 6, 56, {
-      fill: palette.red,
-      stroke: palette.red,
-      strokeWidth: 1,
-    });
-    text(
-      ctx,
-      "note-text",
-      MARGIN + 22,
-      582,
-      fit(slide.note, CONTENT_W - 44, 19),
-      {
-        size: 19,
-        color: palette.ink,
-      },
-    );
+  if (slide.source) {
+    source(ctx, slide.source);
   }
-
   footer(ctx);
 };
 
-const layoutColumns = (ctx: Ctx, slide: DemoSlideSpec) => {
-  if (slide.kind !== "columns") {
+/**
+ * A chain of stages, drawn as a diagram: a rule with a marker on each stage,
+ * the stage name above it and what it does below. It is not a row of cards.
+ */
+const layoutDiagram = (ctx: Ctx, slide: DemoSlideSpec) => {
+  if (slide.kind !== "diagram") {
     return;
   }
 
-  cornerDeco(ctx);
-  const y0 = header(ctx, slide);
-  const gap = 44;
-  const columnWidth =
-    (CONTENT_W - gap * (slide.columns.length - 1)) / slide.columns.length;
+  const top = header(ctx, slide.title);
 
-  slide.columns.forEach((column, index) => {
-    const x = MARGIN + index * (columnWidth + gap);
-    rect(ctx, `column-card-${index}`, x, y0, columnWidth, 380, {
-      fill: palette.surface,
-      stroke: palette.border,
+  const count = slide.nodes.length;
+  const slot = CONTENT_W / count;
+  const axisY = top + 74;
+
+  // the line the stages sit on
+  rule(ctx, "stage-axis", MARGIN, axisY, CONTENT_W, palette.border, 1);
+
+  slide.nodes.forEach((node, index) => {
+    const centre = MARGIN + slot * index + slot / 2;
+
+    // a square marker on the line, and a stem up to the name
+    rect(ctx, `stage-mark-${index}`, centre - 7, axisY - 7, 14, 14, {
+      fill: index === 0 ? palette.accent : palette.title,
+      stroke: index === 0 ? palette.accent : palette.title,
       strokeWidth: 1,
+      square: true,
     });
-    rect(ctx, `column-bar-${index}`, x, y0, columnWidth, 6, {
-      fill: index === 0 ? palette.accent : palette.teal,
-      stroke: index === 0 ? palette.accent : palette.teal,
-      strokeWidth: 1,
-    });
+    rule(ctx, `stage-stem-${index}`, centre, axisY - 34, 0, palette.border, 1);
+
     text(
       ctx,
-      `column-heading-${index}`,
-      x + 24,
-      y0 + 28,
-      fit(column.heading, columnWidth - 48, 26, LILITA),
+      `stage-label-${index}`,
+      centre - slot / 2 + 12,
+      axisY - 76,
+      fit(node.label, slot - 24, 26),
       {
         size: 26,
-        font: LILITA,
         color: palette.ink,
-      },
-    );
-
-    let y = y0 + 78;
-    column.bullets.forEach((bullet, bulletIndex) => {
-      const value = fit(bullet, columnWidth - 72, 21);
-      ellipse(ctx, `column-dot-${index}-${bulletIndex}`, x + 26, y + 8, 9, 9, {
-        fill: index === 0 ? palette.accent : palette.teal,
-        stroke: index === 0 ? palette.accent : palette.teal,
-        strokeWidth: 1,
-      });
-      text(ctx, `column-text-${index}-${bulletIndex}`, x + 48, y, value, {
-        size: 21,
-        color: palette.muted,
-      });
-      y += textBlockHeight(value, 21) + 14;
-    });
-  });
-
-  footer(ctx);
-};
-
-const layoutCards = (ctx: Ctx, slide: DemoSlideSpec) => {
-  if (slide.kind !== "cards") {
-    return;
-  }
-
-  cornerDeco(ctx);
-  const y0 = header(ctx, slide);
-  const gap = 32;
-  const cardWidth =
-    (CONTENT_W - gap * (slide.cards.length - 1)) / slide.cards.length;
-
-  slide.cards.forEach((card, index) => {
-    const x = MARGIN + index * (cardWidth + gap);
-    rect(ctx, `card-bg-${index}`, x, y0, cardWidth, 360, {
-      fill: palette.surface,
-      stroke: palette.border,
-      strokeWidth: 1,
-    });
-    rect(ctx, `card-accent-${index}`, x, y0, cardWidth, 8, {
-      fill: index === 1 ? palette.teal : palette.accent,
-      stroke: index === 1 ? palette.teal : palette.accent,
-      strokeWidth: 1,
-    });
-    ellipse(ctx, `card-badge-${index}`, x + 26, y0 + 40, 44, 44, {
-      fill: palette.white,
-      stroke: palette.border,
-      strokeWidth: 1,
-      label: String(index + 1),
-      labelSize: 20,
-      labelFont: LILITA,
-      labelColor: palette.title,
-    });
-    text(
-      ctx,
-      `card-title-${index}`,
-      x + 26,
-      y0 + 108,
-      fit(card.title, cardWidth - 52, 27, LILITA),
-      {
-        size: 27,
-        font: LILITA,
-        color: palette.title,
+        align: "center",
       },
     );
     text(
       ctx,
-      `card-body-${index}`,
-      x + 26,
-      y0 + 168,
-      fit(card.body, cardWidth - 52, 20),
+      `stage-body-${index}`,
+      centre - slot / 2 + 12,
+      axisY + 28,
+      fit(node.body, slot - 24, 19),
       {
-        size: 20,
-        color: palette.muted,
-      },
-    );
-  });
-
-  footer(ctx);
-};
-
-const layoutStats = (ctx: Ctx, slide: DemoSlideSpec) => {
-  if (slide.kind !== "stats") {
-    return;
-  }
-
-  cornerDeco(ctx);
-  const y0 = header(ctx, slide);
-  const gap = 36;
-  const columnWidth =
-    (CONTENT_W - gap * (slide.stats.length - 1)) / slide.stats.length;
-
-  slide.stats.forEach((stat, index) => {
-    const x = MARGIN + index * (columnWidth + gap);
-    rect(ctx, `stat-card-${index}`, x, y0, columnWidth, 260, {
-      fill: palette.surface,
-      stroke: palette.border,
-      strokeWidth: 1,
-    });
-    text(ctx, `stat-value-${index}`, x + columnWidth / 2, y0 + 46, stat.value, {
-      size: 72,
-      font: LILITA,
-      color: index === 1 ? palette.title : palette.accent,
-      align: "center",
-    });
-    text(
-      ctx,
-      `stat-label-${index}`,
-      x + columnWidth / 2,
-      y0 + 150,
-      fit(stat.label, columnWidth - 40, 20),
-      {
-        size: 20,
+        size: 19,
         color: palette.muted,
         align: "center",
       },
     );
   });
 
-  if (slide.note) {
-    text(ctx, "stat-note", MARGIN, y0 + 300, fit(slide.note, CONTENT_W, 20), {
-      size: 20,
-      color: palette.muted,
-    });
-  }
-
   footer(ctx);
 };
 
-const layoutFlow = (ctx: Ctx, slide: DemoSlideSpec) => {
-  if (slide.kind !== "flow") {
+/** A number, large, with a caption under it. */
+const layoutNumber = (ctx: Ctx, slide: DemoSlideSpec) => {
+  if (slide.kind !== "number") {
     return;
   }
 
-  cornerDeco(ctx);
-  const y0 = header(ctx, slide);
-  const count = slide.steps.length;
-  const arrowSpace = 42;
-  const boxWidth = (CONTENT_W - arrowSpace * (count - 1)) / Math.max(1, count);
-  const boxHeight = 200;
-  const boxY = y0 + 70;
+  header(ctx, slide.title);
 
-  slide.steps.forEach((step, index) => {
-    const x = MARGIN + index * (boxWidth + arrowSpace);
-    const accents = [palette.accent, palette.teal, palette.orange];
-    const fills = [palette.surface, palette.tealTint, palette.orangeTint];
-    rect(ctx, `flow-box-${index}`, x, boxY, boxWidth, boxHeight, {
-      fill: index % 2 === 0 ? palette.surface : fills[index % 3],
-      stroke: index % 2 === 0 ? palette.border : accents[index % 3],
-      strokeWidth: 2,
+  text(ctx, "number-value", MARGIN, 240, slide.value, {
+    size: 168,
+    color: palette.accent,
+  });
+
+  const caption = fit(slide.caption, CONTENT_W - 120, 26);
+  text(ctx, "number-caption", MARGIN, 470, caption, {
+    size: 26,
+    color: palette.ink,
+  });
+
+  if (slide.source) {
+    source(ctx, slide.source);
+  }
+  footer(ctx);
+};
+
+/**
+ * A chart drawn from native shapes, so it can be edited in the editor like
+ * anything else on the canvas. The axis starts at zero and the bars are
+ * labelled, so the shape of the data is not exaggerated.
+ */
+const layoutChart = (ctx: Ctx, slide: DemoSlideSpec) => {
+  if (slide.kind !== "chart") {
+    return;
+  }
+
+  const top = header(ctx, slide.title);
+
+  const plotLeft = MARGIN + 70;
+  const plotRight = SLIDE_W - MARGIN;
+  const plotWidth = plotRight - plotLeft;
+  const plotTop = top + 40;
+  const plotBottom = 520;
+  const plotHeight = plotBottom - plotTop;
+
+  const max = Math.max(...slide.bars.map((bar) => bar.value));
+  // a round maximum, so the gridlines land on readable numbers
+  const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
+  const axisMax = Math.ceil(max / magnitude) * magnitude;
+
+  // the axis and its gridlines
+  rule(ctx, "chart-axis", plotLeft, plotTop, 0, palette.border);
+  for (let i = 0; i <= 4; i++) {
+    const y = plotBottom - (plotHeight * i) / 4;
+    rule(ctx, `chart-grid-${i}`, plotLeft, y, plotWidth, palette.border, 1);
+    const value = Math.round((axisMax * i) / 4);
+    text(ctx, `chart-tick-${i}`, MARGIN, y - 10, String(value), {
+      size: 16,
+      color: palette.faint,
+      align: "right",
     });
-    rect(ctx, `flow-chip-${index}`, x + 20, boxY + 22, 34, 34, {
-      fill: accents[index % 3],
-      stroke: accents[index % 3],
+  }
+
+  const count = slide.bars.length;
+  const slot = plotWidth / count;
+  const barWidth = Math.min(150, slot * 0.4);
+
+  slide.bars.forEach((bar, index) => {
+    const height = (bar.value / axisMax) * plotHeight;
+    const x = plotLeft + slot * index + (slot - barWidth) / 2;
+    const y = plotBottom - height;
+
+    rect(ctx, `chart-bar-${index}`, x, y, barWidth, height, {
+      fill: index === count - 1 ? palette.accent : palette.title,
+      stroke: index === count - 1 ? palette.accent : palette.title,
       strokeWidth: 1,
-      label: String(index + 1),
-      labelSize: 18,
-      labelFont: LILITA,
-      labelColor: palette.white,
+      square: true,
+    });
+
+    text(ctx, `chart-value-${index}`, x, y - 34, String(bar.value), {
+      size: 22,
+      color: palette.ink,
+      align: "center",
     });
     text(
       ctx,
-      `flow-text-${index}`,
-      x + 20,
-      boxY + 78,
-      fit(step, boxWidth - 40, 21),
+      `chart-label-${index}`,
+      plotLeft + slot * index,
+      plotBottom + 18,
+      fit(bar.label, slot - 20, 18),
       {
-        size: 21,
+        size: 18,
         color: palette.ink,
+        align: "center",
       },
     );
-
-    if (index < count - 1) {
-      arrow(
+    if (bar.note) {
+      text(
         ctx,
-        `flow-arrow-${index}`,
-        x + boxWidth + 8,
-        boxY + boxHeight / 2,
-        arrowSpace - 16,
-        0,
-        palette.border,
+        `chart-note-${index}`,
+        plotLeft + slot * index,
+        plotBottom + 44,
+        fit(bar.note, slot - 20, 16),
+        {
+          size: 16,
+          color: palette.faint,
+          align: "center",
+        },
       );
     }
   });
 
-  if (slide.note) {
-    text(
-      ctx,
-      "flow-note",
-      MARGIN,
-      boxY + boxHeight + 40,
-      fit(slide.note, CONTENT_W, 20),
-      {
-        size: 20,
-        color: palette.muted,
-      },
-    );
-  }
+  text(ctx, "chart-axis-label", plotLeft, plotTop - 34, slide.axis, {
+    size: 16,
+    color: palette.faint,
+  });
 
+  if (slide.source) {
+    source(ctx, slide.source);
+  }
   footer(ctx);
 };
 
-const layoutSteps = (ctx: Ctx, slide: DemoSlideSpec) => {
-  if (slide.kind !== "steps") {
-    return;
-  }
-
-  cornerDeco(ctx);
-  const y0 = header(ctx, slide);
-  const columnWidth = (CONTENT_W - 48) / 2;
-  const perColumn = Math.ceil(slide.steps.length / 2);
-
-  slide.steps.forEach((step, index) => {
-    const column = index < perColumn ? 0 : 1;
-    const row = index % perColumn;
-    const x = MARGIN + column * (columnWidth + 48);
-    const y = y0 + row * 104;
-
-    rect(ctx, `step-num-${index}`, x, y, 40, 40, {
-      fill: palette.title,
-      stroke: palette.title,
-      strokeWidth: 1,
-      label: String(index + 1),
-      labelSize: 20,
-      labelFont: LILITA,
-      labelColor: palette.white,
-    });
-    text(
-      ctx,
-      `step-title-${index}`,
-      x + 58,
-      y + 1,
-      fit(step.title, columnWidth - 58, 24, LILITA),
-      {
-        size: 24,
-        font: LILITA,
-        color: palette.ink,
-      },
-    );
-    text(
-      ctx,
-      `step-body-${index}`,
-      x + 58,
-      y + 34,
-      fit(step.body, columnWidth - 58, 19),
-      {
-        size: 19,
-        color: palette.muted,
-      },
-    );
-  });
-
-  footer(ctx);
-};
-
-const layoutQuote = (ctx: Ctx, slide: DemoSlideSpec) => {
-  if (slide.kind !== "quote") {
-    return;
-  }
-
-  rect(ctx, "quote-panel", 120, 150, SLIDE_W - 240, 420, {
-    fill: palette.surface,
-    stroke: palette.border,
-    strokeWidth: 2,
-  });
-  rect(ctx, "quote-bar", 120, 150, 10, 420, {
-    fill: palette.accent,
-    stroke: palette.accent,
-    strokeWidth: 1,
-  });
-  text(ctx, "quote-text", SLIDE_W / 2, 236, fit(slide.quote, 880, 44, LILITA), {
-    size: 44,
-    font: LILITA,
-    color: palette.ink,
-    align: "center",
-  });
-  text(ctx, "quote-cite", SLIDE_W / 2, 480, slide.cite, {
-    size: 22,
-    color: palette.accent,
-    align: "center",
-  });
-};
-
-const layoutCompare = (ctx: Ctx, slide: DemoSlideSpec) => {
-  if (slide.kind !== "compare") {
-    return;
-  }
-
-  cornerDeco(ctx);
-  const y0 = header(ctx, slide);
-  const gap = 48;
-  const columnWidth = (CONTENT_W - gap) / 2;
-
-  [
-    { key: "left" as const, panel: slide.left, color: palette.title },
-    { key: "right" as const, panel: slide.right, color: palette.accent },
-  ].forEach(({ key, panel, color }, index) => {
-    const x = MARGIN + index * (columnWidth + gap);
-    rect(ctx, `compare-card-${key}`, x, y0, columnWidth, 330, {
-      fill: palette.surface,
-      stroke: palette.border,
-      strokeWidth: 1,
-    });
-    rect(ctx, `compare-bar-${key}`, x, y0, columnWidth, 8, {
-      fill: color,
-      stroke: color,
-      strokeWidth: 1,
-    });
-    text(
-      ctx,
-      `compare-heading-${key}`,
-      x + 26,
-      y0 + 30,
-      fit(panel.heading, columnWidth - 52, 27, LILITA),
-      {
-        size: 27,
-        font: LILITA,
-        color,
-      },
-    );
-
-    let y = y0 + 86;
-    panel.bullets.forEach((bullet, bulletIndex) => {
-      const value = fit(bullet, columnWidth - 76, 21);
-      rect(ctx, `compare-mark-${key}-${bulletIndex}`, x + 26, y + 8, 10, 10, {
-        fill: color,
-        stroke: color,
-        strokeWidth: 1,
-      });
-      text(ctx, `compare-text-${key}-${bulletIndex}`, x + 50, y, value, {
-        size: 21,
-        color: palette.muted,
-      });
-      y += textBlockHeight(value, 21) + 16;
-    });
-  });
-
-  footer(ctx);
-};
-
-const layoutCode = (ctx: Ctx, slide: DemoSlideSpec) => {
-  if (slide.kind !== "code") {
-    return;
-  }
-
-  cornerDeco(ctx);
-  const y0 = header(ctx, slide);
-  const panelHeight = 400;
-
-  rect(ctx, "code-panel", MARGIN, y0, CONTENT_W, panelHeight, {
-    fill: palette.surface,
-    stroke: palette.border,
-    strokeWidth: 1,
-  });
-  rect(ctx, "code-bar", MARGIN, y0, CONTENT_W, 44, {
-    fill: palette.titleTint,
-    stroke: palette.titleTint,
-    strokeWidth: 1,
-  });
-  ellipse(ctx, "code-dot-a", MARGIN + 22, y0 + 17, 10, 10, {
-    fill: palette.accent,
-    stroke: palette.accent,
-    strokeWidth: 1,
-  });
-  ellipse(ctx, "code-dot-b", MARGIN + 40, y0 + 17, 10, 10, {
-    fill: palette.teal,
-    stroke: palette.teal,
-    strokeWidth: 1,
-  });
-  text(ctx, "code-lang", MARGIN + CONTENT_W - 24, y0 + 14, slide.language, {
-    size: 17,
-    color: palette.muted,
-    align: "right",
-  });
-
-  text(ctx, "code-body", MARGIN + 28, y0 + 68, slide.code, {
-    size: 20,
-    font: CASCADIA,
-    color: palette.ink,
-  });
-
-  footer(ctx);
-};
-
+/** A table, set with rules rather than a filled header band. */
 const layoutTable = (ctx: Ctx, slide: DemoSlideSpec) => {
   if (slide.kind !== "table") {
     return;
   }
 
-  cornerDeco(ctx);
-  const y0 = header(ctx, slide);
-  const columns = slide.headers.length;
-  const columnWidth = CONTENT_W / columns;
-  const rowHeight = 58;
+  let y = header(ctx, slide.title);
 
-  rect(ctx, "table-head", MARGIN, y0, CONTENT_W, 48, {
-    fill: palette.title,
-    stroke: palette.title,
-    strokeWidth: 1,
-  });
-  slide.headers.forEach((header, index) => {
+  const columns = slide.headers.length;
+  const firstWidth = 150;
+  const rest = (CONTENT_W - firstWidth) / (columns - 1);
+
+  const columnX = (index: number) =>
+    index === 0 ? MARGIN : MARGIN + firstWidth + rest * (index - 1);
+  const columnWidth = (index: number) => (index === 0 ? firstWidth : rest);
+
+  slide.headers.forEach((headerText, index) => {
     text(
       ctx,
       `table-head-${index}`,
-      MARGIN + index * columnWidth + 22,
-      y0 + 14,
-      header,
+      columnX(index),
+      y,
+      fit(headerText, columnWidth(index) - 24, 18),
       {
-        size: 20,
-        font: LILITA,
-        color: palette.white,
+        size: 18,
+        color: palette.muted,
       },
     );
   });
+
+  y += 30;
+  rule(ctx, "table-rule", MARGIN, y, CONTENT_W, palette.border, 1);
+  y += 24;
 
   slide.rows.forEach((row, rowIndex) => {
-    const y = y0 + 48 + rowIndex * rowHeight;
-    if (rowIndex % 2 === 0) {
-      rect(ctx, `table-zebra-${rowIndex}`, MARGIN, y, CONTENT_W, rowHeight, {
-        fill: palette.surface,
-        stroke: palette.surface,
-        strokeWidth: 1,
-      });
-    }
-    rect(
-      ctx,
-      `table-line-${rowIndex}`,
-      MARGIN,
-      y + rowHeight - 2,
-      CONTENT_W,
-      1,
-      {
-        fill: palette.border,
-        stroke: palette.border,
-        strokeWidth: 1,
-      },
+    // the row is as tall as its tallest cell, so a cell that wraps does not
+    // run into the row below it
+    const cells = row.map((cell, index) =>
+      fit(cell, columnWidth(index) - 24, 20),
     );
-    row.forEach((cell, index) => {
-      text(
-        ctx,
-        `table-cell-${rowIndex}-${index}`,
-        MARGIN + index * columnWidth + 22,
-        y + 17,
-        fit(cell, CONTENT_W / columns - 44, 19),
-        {
-          size: 19,
-          color: index === 0 ? palette.ink : palette.muted,
-        },
-      );
+    const height = Math.max(...cells.map((cell) => textBlockHeight(cell, 20)));
+
+    cells.forEach((cell, index) => {
+      text(ctx, `table-cell-${rowIndex}-${index}`, columnX(index), y, cell, {
+        size: 20,
+        color: index === 0 ? palette.ink : palette.muted,
+      });
     });
+
+    y += height + 22;
   });
 
+  if (slide.source) {
+    source(ctx, slide.source);
+  }
   footer(ctx);
 };
 
+/** A protocol transcript, in the monospace face. */
+const layoutCode = (ctx: Ctx, slide: DemoSlideSpec) => {
+  if (slide.kind !== "code") {
+    return;
+  }
+
+  const top = header(ctx, slide.title);
+
+  const lines = slide.code.split("\n");
+  const lineHeight = 30;
+  const panelHeight = lines.length * lineHeight + 56;
+
+  rect(ctx, "code-panel", MARGIN, top + 24, CONTENT_W, panelHeight, {
+    fill: palette.surface,
+    stroke: palette.border,
+    strokeWidth: 1,
+    square: true,
+  });
+
+  text(ctx, "code-language", MARGIN + 28, top + 44, slide.language, {
+    size: 16,
+    color: palette.faint,
+  });
+
+  lines.forEach((line, index) => {
+    text(
+      ctx,
+      `code-line-${index}`,
+      MARGIN + 28,
+      top + 78 + index * lineHeight,
+      line,
+      {
+        size: 20,
+        font: CASCADIA,
+        color: palette.ink,
+      },
+    );
+  });
+
+  if (slide.source) {
+    source(ctx, slide.source);
+  }
+  footer(ctx);
+};
+
+/** A quotation, with the source under it. */
+const layoutQuote = (ctx: Ctx, slide: DemoSlideSpec) => {
+  if (slide.kind !== "quote") {
+    return;
+  }
+
+  const value = fit(slide.quote, CONTENT_W - 120, 40);
+  const height = textBlockHeight(value, 40);
+
+  text(ctx, "quote-text", MARGIN, 240, value, {
+    size: 40,
+    color: palette.ink,
+  });
+  text(ctx, "quote-cite", MARGIN, 240 + height + 40, slide.cite, {
+    size: 20,
+    color: palette.muted,
+  });
+};
+
+/** Two columns of text, separated by a rule. */
+const layoutCompare = (ctx: Ctx, slide: DemoSlideSpec) => {
+  if (slide.kind !== "compare") {
+    return;
+  }
+
+  const top = header(ctx, slide.title);
+
+  const columnWidth = (CONTENT_W - 90) / 2;
+  const columns = [
+    { key: "left", panel: slide.left, x: MARGIN },
+    { key: "right", panel: slide.right, x: MARGIN + columnWidth + 90 },
+  ];
+
+  columns.forEach(({ key, panel, x }) => {
+    text(ctx, `compare-heading-${key}`, x, top, panel.heading, {
+      size: 28,
+      color: palette.title,
+    });
+
+    let y = top + 48;
+    panel.lines.forEach((line, index) => {
+      const value = fit(line, columnWidth - 28, 22);
+      const height = textBlockHeight(value, 22);
+
+      rect(ctx, `compare-mark-${key}-${index}`, x, y + 9, 8, 8, {
+        fill: key === "left" ? palette.border : palette.accent,
+        stroke: key === "left" ? palette.border : palette.accent,
+        strokeWidth: 1,
+      });
+      text(ctx, `compare-text-${key}-${index}`, x + 28, y, value, {
+        size: 22,
+        color: palette.ink,
+      });
+
+      y += height + 20;
+    });
+  });
+
+  vrule(ctx, "compare-rule", MARGIN + columnWidth + 45, top, 300);
+
+  if (slide.source) {
+    source(ctx, slide.source);
+  }
+  footer(ctx);
+};
+
+/** Numbered steps, set as a list with the number in the margin. */
+const layoutSteps = (ctx: Ctx, slide: DemoSlideSpec) => {
+  if (slide.kind !== "steps") {
+    return;
+  }
+
+  let y = header(ctx, slide.title);
+
+  slide.steps.forEach((step, index) => {
+    const label = fit(step.label, 180, 24);
+    const body = fit(step.body, CONTENT_W - 260, 22);
+    const height = Math.max(
+      textBlockHeight(label, 24),
+      textBlockHeight(body, 22),
+    );
+
+    text(ctx, `step-number-${index}`, MARGIN, y, `${index + 1}.`, {
+      size: 24,
+      color: palette.accent,
+    });
+    text(ctx, `step-label-${index}`, MARGIN + 60, y, label, {
+      size: 24,
+      color: palette.ink,
+    });
+    text(ctx, `step-body-${index}`, MARGIN + 250, y, body, {
+      size: 22,
+      color: palette.muted,
+    });
+
+    y += height + 28;
+  });
+
+  if (slide.source) {
+    source(ctx, slide.source);
+  }
+  footer(ctx);
+};
+
+/**
+ * The point of a part, set as a sentence with a short list under it. The
+ * list is set as text, without a box.
+ */
 const layoutTakeaway = (ctx: Ctx, slide: DemoSlideSpec) => {
   if (slide.kind !== "takeaway") {
     return;
   }
 
-  cornerDeco(ctx);
-  const y0 = header(ctx, slide);
+  let y = header(ctx, slide.title);
 
-  rect(ctx, "takeaway-box", MARGIN, y0, CONTENT_W, 150, {
-    fill: palette.surface,
-    stroke: palette.border,
-    strokeWidth: 2,
-  });
-  rect(ctx, "takeaway-bar", MARGIN, y0, 8, 150, {
-    fill: palette.accent,
-    stroke: palette.accent,
-    strokeWidth: 1,
-  });
-  text(
-    ctx,
-    "takeaway-body",
-    MARGIN + 34,
-    y0 + 30,
-    fit(slide.body, CONTENT_W - 68, 27),
-    {
-      size: 27,
-      color: palette.ink,
-    },
-  );
+  const body = fit(slide.body, CONTENT_W - 80, 30);
+  const bodyHeight = textBlockHeight(body, 30);
 
-  if (slide.points?.length) {
-    const gap = 34;
-    const columnWidth =
-      (CONTENT_W - gap * (slide.points.length - 1)) / slide.points.length;
-    slide.points.forEach((point, index) => {
-      const x = MARGIN + index * (columnWidth + gap);
-      rect(ctx, `takeaway-card-${index}`, x, y0 + 190, columnWidth, 220, {
-        fill: palette.surface,
-        stroke: palette.border,
-        strokeWidth: 1,
-      });
-      const accents = [palette.accent, palette.teal, palette.orange];
-      ellipse(ctx, `takeaway-dot-${index}`, x + 24, y0 + 214, 12, 12, {
-        fill: accents[index % 3],
-        stroke: accents[index % 3],
-        strokeWidth: 1,
-      });
-      text(
-        ctx,
-        `takeaway-text-${index}`,
-        x + 24,
-        y0 + 244,
-        fit(point, columnWidth - 48, 20),
-        {
-          size: 20,
-          color: palette.muted,
-        },
-      );
+  text(ctx, "takeaway-body", MARGIN, y, body, {
+    size: 30,
+    color: palette.ink,
+  });
+  y += bodyHeight + 44;
+
+  rule(ctx, "takeaway-rule", MARGIN, y, 160, palette.accent, 3);
+  y += 34;
+
+  slide.points.forEach((point, index) => {
+    const value = fit(point, CONTENT_W - 44, 24);
+    const height = textBlockHeight(value, 24);
+
+    rect(ctx, `takeaway-mark-${index}`, MARGIN + 2, y + 9, 10, 10, {
+      fill: palette.accent,
+      stroke: palette.accent,
+      strokeWidth: 1,
     });
-  }
+    text(ctx, `takeaway-text-${index}`, MARGIN + 44, y, value, {
+      size: 24,
+      color: palette.muted,
+    });
 
+    y += height + 22;
+  });
+
+  if (slide.source) {
+    source(ctx, slide.source);
+  }
   footer(ctx);
 };
 
+/** The closing slide, with the ask and the sources behind the deck. */
 const layoutEnd = (ctx: Ctx, slide: DemoSlideSpec) => {
   if (slide.kind !== "end") {
     return;
   }
 
   darkBackdrop(ctx);
-  ellipse(ctx, "end-blob", 920, -200, 520, 520, {
-    fill: mix(DARK, 0.86),
-    stroke: mix(DARK, 0.7),
-    strokeWidth: 2,
-  });
-  ellipse(ctx, "end-ring", 1080, 60, 200, 200, {
-    stroke: palette.accent,
-    strokeWidth: 3,
-  });
 
-  text(ctx, "end-kicker", MARGIN, 168, "END OF DECK", {
-    size: 22,
-    color: palette.accent,
-    font: LILITA,
-  });
-  text(ctx, "end-title", MARGIN, 210, fit(slide.title, 800, 72, LILITA), {
-    size: 72,
-    font: LILITA,
+  const title = fit(slide.title, CONTENT_W - 120, 56);
+  const titleHeight = textBlockHeight(title, 56);
+
+  text(ctx, "end-title", MARGIN, 150, title, {
+    size: 56,
     color: palette.white,
   });
-  text(ctx, "end-subtitle", MARGIN, 320, fit(slide.subtitle, 840, 26), {
+
+  const bodyTop = 150 + titleHeight + 30;
+  const body = fit(slide.body, CONTENT_W - 220, 26);
+  const bodyHeight = textBlockHeight(body, 26);
+
+  text(ctx, "end-body", MARGIN, bodyTop, body, {
     size: 26,
     color: palette.onDark,
   });
 
-  const gap = 32;
-  const columnWidth =
-    (CONTENT_W - gap * (slide.links.length - 1)) / slide.links.length;
+  const listTop = bodyTop + bodyHeight + 60;
+  rule(ctx, "end-rule", MARGIN, listTop - 34, CONTENT_W, mix(WHITE, 0.24));
+
   slide.links.forEach((link, index) => {
-    const x = MARGIN + index * (columnWidth + gap);
-    rect(ctx, `end-card-${index}`, x, 440, columnWidth, 160, {
-      fill: mix(DARK, 0.84),
-      stroke: mix(DARK, 0.68),
-      strokeWidth: 1,
+    const x = MARGIN + index * 280;
+    text(ctx, `end-link-${index}`, x, listTop, link.label, {
+      size: 22,
+      color: palette.accent,
     });
-    text(
-      ctx,
-      `end-link-${index}`,
-      x + 24,
-      466,
-      fit(link.label, columnWidth - 48, 23, LILITA),
-      {
-        size: 23,
-        font: LILITA,
-        color: palette.accent,
-      },
-    );
-    text(
-      ctx,
-      `end-detail-${index}`,
-      x + 24,
-      508,
-      fit(link.detail, columnWidth - 48, 18),
-      {
-        size: 18,
-        color: palette.onDark,
-      },
-    );
+    text(ctx, `end-detail-${index}`, x, listTop + 32, link.detail, {
+      size: 18,
+      color: palette.onDarkFaint,
+    });
   });
 };
 
 const LAYOUTS: Record<string, (ctx: Ctx, slide: DemoSlideSpec) => void> = {
   cover: layoutCover,
-  agenda: layoutAgenda,
+  statement: layoutStatement,
   section: layoutSection,
   bullets: layoutBullets,
-  columns: layoutColumns,
-  cards: layoutCards,
-  stats: layoutStats,
-  flow: layoutFlow,
-  steps: layoutSteps,
+  diagram: layoutDiagram,
+  number: layoutNumber,
+  chart: layoutChart,
+  table: layoutTable,
+  code: layoutCode,
   quote: layoutQuote,
   compare: layoutCompare,
-  code: layoutCode,
-  table: layoutTable,
+  steps: layoutSteps,
   takeaway: layoutTakeaway,
   end: layoutEnd,
 };
@@ -1375,6 +1086,7 @@ export const buildDemo = (): BuiltDemo => {
       prefix: `${prefix}-s${index}`,
       els: [],
       ids: [],
+      dark: DARK_SLIDE_KINDS.has(slide.kind),
     };
 
     (LAYOUTS[slide.kind] ?? layoutBullets)(ctx, slide);
@@ -1394,9 +1106,6 @@ export const buildDemo = (): BuiltDemo => {
       ...(slide.notes ? { notes: slide.notes } : {}),
     };
 
-    // the title, divider and closing slides are backed by the dark blue
-    const isDark = DARK_SLIDE_KINDS.has(slide.kind);
-
     skeletons.push(...ctx.els, {
       type: "frame",
       id: `${prefix}-frame-${index}`,
@@ -1412,7 +1121,7 @@ export const buildDemo = (): BuiltDemo => {
       fillStyle: FRAME_STYLE.fillStyle,
       roughness: FRAME_STYLE.roughness,
       roundness: FRAME_STYLE.roundness,
-      backgroundColor: isDark ? palette.dark : FRAME_STYLE.backgroundColor,
+      backgroundColor: ctx.dark ? palette.dark : FRAME_STYLE.backgroundColor,
       customData: { presentation },
     });
   });
@@ -1421,29 +1130,38 @@ export const buildDemo = (): BuiltDemo => {
 };
 
 const slideTitle = (slide: DemoSlideSpec) => {
-  if (slide.kind === "section") {
-    return slide.title;
+  switch (slide.kind) {
+    case "cover":
+    case "section":
+    case "bullets":
+    case "diagram":
+    case "number":
+    case "chart":
+    case "table":
+    case "code":
+    case "compare":
+    case "steps":
+    case "takeaway":
+    case "end":
+      return slide.title;
+    case "statement":
+      return slide.text;
+    case "quote":
+      return slide.quote.slice(0, 48);
   }
-  if ("title" in slide && slide.title) {
-    return slide.title;
-  }
-  if (slide.kind === "quote") {
-    return slide.quote.slice(0, 48);
-  }
-  return `Slide ${DEMO_SLIDES.indexOf(slide) + 1}`;
 };
 
 /** Waits for the fonts used by the demo, so text is measured correctly. */
 /** the families the demo uses, and a size to probe them with */
-const DEMO_FONTS = ['19px "Nunito"', '48px "Lilita One"', '20px "Cascadia"'];
+const DEMO_FONTS = ['19px "Nunito"', '20px "Cascadia"'];
 
 /** the characters the fonts are probed with */
 const DEMO_FONT_PROBE = "abcdefghijklmnopqrstuvwxyz0123456789";
 
 /**
- * Waits until a font is actually usable for measuring, so that text boxes are
- * exactly as wide as their content. Resolves to false on timeout, which only
- * means the text is measured with the fallback font.
+ * Waits until a font is actually usable for measuring, so that text boxes
+ * are exactly as wide as their content. Resolves to false on timeout, which
+ * only means the text is measured with the fallback font.
  */
 const waitForFont = async (doc: Document, font: string, timeoutMs = 4000) => {
   const deadline = Date.now() + timeoutMs;
