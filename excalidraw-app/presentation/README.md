@@ -25,62 +25,6 @@ The source is `demoContent.ts` (the words) and `demoDeck.ts` (the layouts), and 
 4. Open **Slide N settings** at the top of the panel to configure the **transition**, **draw-in animation** and its **speed**, **auto-advance**, **speaker notes**, and the **reveal steps** of every element on the slide. _Apply to all slides_ copies the current transition/animation to the deck.
 5. Press **Present** (or <kbd>F5</kbd>).
 
-## Generating a deck from JSON (AI-friendly)
-
-Hand-writing Excalidraw element JSON is painful, so `deck.ts` compiles a small **deck spec**: plain text + a layout name. The compiler turns it into real frames and elements (text is measured with the actual fonts) and can append the deck below whatever is already on the canvas.
-
-The intended workflow is to ask an assistant for a deck in this format and compile it with `buildDeck()` / `importDeck()` — see `examples/aws-ec2.deck.json` for a complete 25-slide example.
-
-```jsonc
-{
-  "title": "How AWS EC2 Works",
-  "slides": [
-    {
-      "layout": "title",
-      "eyebrow": "AWS · COMPUTE",
-      "title": "How AWS EC2 Works",
-      "subtitle": "From a click to a running VM",
-      "badge": "Start presenting",
-      "accent": "#4c6ef5",
-      "transition": "fade"
-    },
-    {
-      "layout": "bullets",
-      "eyebrow": "THE BASICS",
-      "title": "What is EC2?",
-      "bullets": ["Virtual servers by the second", "Pick an image and a size"],
-      "reveal": true,
-      "notes": "Keep this short."
-    },
-    {
-      "layout": "flow",
-      "title": "Lifecycle",
-      "steps": ["Launch", "Pending", "Running", "Stopped", "Terminated"]
-    }
-  ]
-}
-```
-
-| Field | Applies to | Notes |
-| --- | --- | --- |
-| `layout` | every slide | `title`, `section`, `bullets`, `split`, `stat`, `quote`, `flow`, `end` (default `bullets`) |
-| `eyebrow` | all | small label above the title; the big number on `section` |
-| `title`, `subtitle` | all | the frame is named after `title` |
-| `bullets` | `bullets`, `split` | 1–6 items; on `split` they sit left of the card |
-| `panel` | `split` | `{ "title": "...", "bullets": ["..."] }` right-hand card |
-| `stats` | `stat` | up to 3 `{ "value": "99.99%", "label": "..." }` |
-| `steps` | `flow` | up to 5 boxes connected by arrows |
-| `quote`, `cite` | `quote` | big pull quote |
-| `badge` | `title`, `end` | call-to-action pill text |
-| `accent` | all | any `#rrggbb`; tints are derived automatically |
-| `transition` | all | one of the transitions above |
-| `animate` | all | `false` disables the draw-in for that slide |
-| `animateDuration` | all | ms per object |
-| `reveal` | all | reveal bullets / flow steps one at a time |
-| `notes` | all | speaker notes |
-
-Slides are laid out in a two-column grid (the deck order is reading order: rows top-to-bottom, then left-to-right). Long titles and bullets are wrapped automatically. Keep slides to one idea each — the templates have room for about 5 bullets or 3 cards.
-
 ## Presenting
 
 Press **F5** (or **Present** in the panel) to start from the slide currently in view. The editor chrome is hidden, the slide is fitted to the screen, and fullscreen is requested. Leaving fullscreen leaves presentation mode.
@@ -144,12 +88,10 @@ Undo/redo and the usual tool shortcuts keep working while presenting. Ink drawn 
 | `animate.ts` | Draw-in animation: SVG export → injected SMIL (port of excalidraw-animate) |
 | `SlideDrawIn.tsx` | Aligned animated SVG overlay used by the presenter |
 | `slideSvg.ts` | Cropped, cached slide SVGs + content hash + neighbour prefetch |
-| `deck.ts` | Deck-spec → frames/elements compiler (used by tools/assistants) |
 | `demoContent.ts` | The hundred slides of the built-in demo deck |
-| `demoDeck.ts` | The layouts the demo is drawn with |
+| `demoDeck.ts` | The layouts the demo is drawn with, and the `.excalidraw` export |
 | `slides.test.ts` | Unit tests for ordering, grouping, steps, settings, reordering |
 | `animate.test.ts` | Unit tests for the animation injection and element ordering |
-| `deck.test.ts` | Unit tests for the deck spec parser, layouts, and demo deck |
 | `demoDeck.test.ts` | Unit tests for the built-in demo deck |
 
 Per-slide metadata lives on the frame:

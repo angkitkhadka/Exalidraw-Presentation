@@ -7,6 +7,7 @@ import {
 import { getNormalizedZoom } from "@excalidraw/excalidraw/scene/normalize";
 
 import { Fonts } from "@excalidraw/excalidraw";
+import { serializeAsJSON } from "@excalidraw/excalidraw/data/json";
 
 import type { ExcalidrawElementSkeleton } from "@excalidraw/element";
 import type { FontFamilyValues, TextAlign } from "@excalidraw/element/types";
@@ -35,15 +36,29 @@ const SLIDE_H = 720;
 const MARGIN = 88;
 const CONTENT_W = SLIDE_W - MARGIN * 2;
 
-const INK = "#0f172a";
-const MUTED = "#5b6b83";
-const FAINT = "#9aa8bd";
-const ACCENT = "#4f46e5";
-const ACCENT_DEEP = "#3730a3";
-const SKY = "#0ea5e9";
-const SURFACE = "#f6f7fb";
-const BORDER = "#e3e8f0";
+/**
+ * The colour scheme the whole project uses.
+ *
+ * - the dark blue backs the title, the dividers and the closing slide
+ * - white backs the content slides, and is the text colour on the dark ones
+ * - the logo blue is the colour of the slide titles
+ * - the bright blue is for highlights, icons and key takeaways
+ * - near black is the body text
+ * - the light grey fills cards and code boxes
+ * - the border grey draws borders and dividers
+ * - orange and teal are the second and third accents, for diagrams
+ * - red is only used for risks and errors
+ */
+const DARK = "#142636";
 const WHITE = "#ffffff";
+const LOGO = "#00549f";
+const ACCENT = "#00a1de";
+const INK = "#121619";
+const SURFACE = "#f8f9fb";
+const BORDER = "#c1c7cd";
+const ORANGE = "#ffab87";
+const TEAL = "#6ec0c0";
+const RED = "#d85a77";
 
 const LILITA = FONT_FAMILY["Lilita One"];
 const NUNITO = FONT_FAMILY.Nunito;
@@ -68,22 +83,43 @@ const mix = (hex: string, amount: number) => {
 };
 
 const palette = {
-  accent: ACCENT,
-  deep: ACCENT_DEEP,
-  sky: SKY,
-  ink: INK,
-  muted: MUTED,
-  faint: FAINT,
-  surface: SURFACE,
-  border: BORDER,
+  /** the dark blue, for the title, divider and closing slides */
+  dark: DARK,
   white: WHITE,
-  /** light stroke, so decorations sketch in without shouting */
-  soft: mix(ACCENT, 0.34),
-  /** very light fill */
-  tint: mix(ACCENT, 0.07),
-  /** a slightly stronger fill for cards */
-  wash: mix(ACCENT, 0.14),
-  skyTint: mix(SKY, 0.07),
+  /** the logo blue, for the slide titles */
+  title: LOGO,
+  /** the bright blue, for highlights, icons and key takeaways */
+  accent: ACCENT,
+  /** the body colour */
+  ink: INK,
+  /** secondary text */
+  muted: mix(INK, 0.45),
+  /** the faintest text, the footer */
+  faint: mix(INK, 0.3),
+  /** card and code box fills */
+  surface: SURFACE,
+  /** borders and dividers */
+  border: BORDER,
+  /** the second accent, for diagrams */
+  orange: ORANGE,
+  /** the third accent, for diagrams */
+  teal: TEAL,
+  /** only for risks and errors */
+  red: RED,
+  /** a pale accent, for the soft fills */
+  tint: mix(ACCENT, 0.1),
+  /** a slightly stronger accent fill */
+  wash: mix(ACCENT, 0.2),
+  /** a pale orange */
+  orangeTint: mix(ORANGE, 0.14),
+  /** a pale teal */
+  tealTint: mix(TEAL, 0.14),
+  /** a pale red, for the risk notes */
+  redTint: mix(RED, 0.1),
+  /** a pale logo blue */
+  titleTint: mix(LOGO, 0.1),
+  /** the light text used on the dark slides */
+  onDark: mix(WHITE, 0.78),
 };
 
 // ---------------------------------------------------------------------------
@@ -372,7 +408,7 @@ const header = (ctx: Ctx, slide: DemoSlideSpec) => {
     text(ctx, "title", MARGIN, y, title, {
       size: 48,
       font: LILITA,
-      color: palette.ink,
+      color: palette.title,
     });
     y += textBlockHeight(title, 48) + 14;
   }
@@ -403,10 +439,19 @@ const footer = (ctx: Ctx) => {
   });
 };
 
+/** the dark blue that backs the title, divider and closing slides */
+const darkBackdrop = (ctx: Ctx) => {
+  rect(ctx, "backdrop", 0, 0, SLIDE_W, SLIDE_H, {
+    fill: palette.dark,
+    stroke: palette.dark,
+    strokeWidth: 1,
+  });
+};
+
 /** A soft shape in the corner, so every slide has the same visual anchor. */
 const cornerDeco = (ctx: Ctx) => {
   ellipse(ctx, "deco-ring", 1104, -120, 300, 300, {
-    stroke: palette.soft,
+    stroke: palette.tint,
     strokeWidth: 2,
   });
   ellipse(ctx, "deco-dot", 1216, 596, 44, 44, {
@@ -425,9 +470,10 @@ const layoutCover = (ctx: Ctx, slide: DemoSlideSpec) => {
     return;
   }
 
+  darkBackdrop(ctx);
   ellipse(ctx, "cover-blob", 880, -170, 560, 560, {
-    fill: palette.tint,
-    stroke: palette.soft,
+    fill: mix(DARK, 0.86),
+    stroke: mix(DARK, 0.7),
     strokeWidth: 2,
   });
   ellipse(ctx, "cover-ring", 1010, 430, 260, 260, {
@@ -435,8 +481,8 @@ const layoutCover = (ctx: Ctx, slide: DemoSlideSpec) => {
     strokeWidth: 3,
   });
   ellipse(ctx, "cover-dot", 1082, 502, 116, 116, {
-    fill: palette.wash,
-    stroke: palette.soft,
+    fill: mix(DARK, 0.78),
+    stroke: palette.teal,
     strokeWidth: 2,
   });
 
@@ -456,7 +502,7 @@ const layoutCover = (ctx: Ctx, slide: DemoSlideSpec) => {
   text(ctx, "cover-title", MARGIN, 246, title, {
     size: 96,
     font: LILITA,
-    color: palette.ink,
+    color: palette.white,
   });
 
   const subtitle = fit(slide.subtitle, 820, 30);
@@ -468,7 +514,7 @@ const layoutCover = (ctx: Ctx, slide: DemoSlideSpec) => {
     subtitle,
     {
       size: 30,
-      color: palette.muted,
+      color: palette.onDark,
     },
   );
 
@@ -487,7 +533,7 @@ const layoutCover = (ctx: Ctx, slide: DemoSlideSpec) => {
 
   text(ctx, "cover-meta", MARGIN, 632, `${DEMO_SLIDES.length} slides`, {
     size: 22,
-    color: palette.faint,
+    color: palette.onDark,
   });
 };
 
@@ -507,8 +553,8 @@ const layoutAgenda = (ctx: Ctx, slide: DemoSlideSpec) => {
     const y = y0 + row * 66;
 
     rect(ctx, `agenda-dot-${index}`, x, y + 4, 34, 34, {
-      fill: index % 2 === 0 ? palette.accent : palette.sky,
-      stroke: index % 2 === 0 ? palette.accent : palette.sky,
+      fill: index % 2 === 0 ? palette.title : palette.accent,
+      stroke: index % 2 === 0 ? palette.title : palette.accent,
       strokeWidth: 1,
       label: String(index + 1),
       labelSize: 18,
@@ -542,9 +588,10 @@ const layoutSection = (ctx: Ctx, slide: DemoSlideSpec) => {
     return;
   }
 
+  darkBackdrop(ctx);
   rect(ctx, "section-card", 56, 56, SLIDE_W - 112, SLIDE_H - 112, {
-    fill: palette.tint,
-    stroke: palette.soft,
+    fill: mix(DARK, 0.88),
+    stroke: mix(DARK, 0.72),
     strokeWidth: 2,
   });
   ellipse(ctx, "section-ring", 940, 120, 250, 250, {
@@ -552,8 +599,8 @@ const layoutSection = (ctx: Ctx, slide: DemoSlideSpec) => {
     strokeWidth: 3,
   });
   ellipse(ctx, "section-dot", 1010, 300, 110, 110, {
-    fill: palette.white,
-    stroke: palette.soft,
+    fill: mix(DARK, 0.78),
+    stroke: palette.teal,
     strokeWidth: 2,
   });
 
@@ -570,11 +617,11 @@ const layoutSection = (ctx: Ctx, slide: DemoSlideSpec) => {
   text(ctx, "section-title", 126, 372, fit(slide.title, 780, 56, LILITA), {
     size: 56,
     font: LILITA,
-    color: palette.ink,
+    color: palette.white,
   });
   text(ctx, "section-summary", 126, 452, fit(slide.summary, 860, 24), {
     size: 24,
-    color: palette.muted,
+    color: palette.onDark,
   });
 };
 
@@ -620,8 +667,13 @@ const layoutBullets = (ctx: Ctx, slide: DemoSlideSpec) => {
 
   if (slide.note) {
     rect(ctx, "note-box", MARGIN, 566, CONTENT_W, 56, {
-      fill: palette.surface,
-      stroke: palette.border,
+      fill: palette.redTint,
+      stroke: palette.redTint,
+      strokeWidth: 1,
+    });
+    rect(ctx, "note-bar", MARGIN, 566, 6, 56, {
+      fill: palette.red,
+      stroke: palette.red,
       strokeWidth: 1,
     });
     text(
@@ -632,7 +684,7 @@ const layoutBullets = (ctx: Ctx, slide: DemoSlideSpec) => {
       fit(slide.note, CONTENT_W - 44, 19),
       {
         size: 19,
-        color: palette.muted,
+        color: palette.ink,
       },
     );
   }
@@ -659,8 +711,8 @@ const layoutColumns = (ctx: Ctx, slide: DemoSlideSpec) => {
       strokeWidth: 1,
     });
     rect(ctx, `column-bar-${index}`, x, y0, columnWidth, 6, {
-      fill: index === 0 ? palette.accent : palette.sky,
-      stroke: index === 0 ? palette.accent : palette.sky,
+      fill: index === 0 ? palette.accent : palette.teal,
+      stroke: index === 0 ? palette.accent : palette.teal,
       strokeWidth: 1,
     });
     text(
@@ -680,8 +732,8 @@ const layoutColumns = (ctx: Ctx, slide: DemoSlideSpec) => {
     column.bullets.forEach((bullet, bulletIndex) => {
       const value = fit(bullet, columnWidth - 72, 21);
       ellipse(ctx, `column-dot-${index}-${bulletIndex}`, x + 26, y + 8, 9, 9, {
-        fill: index === 0 ? palette.accent : palette.sky,
-        stroke: index === 0 ? palette.accent : palette.sky,
+        fill: index === 0 ? palette.accent : palette.teal,
+        stroke: index === 0 ? palette.accent : palette.teal,
         strokeWidth: 1,
       });
       text(ctx, `column-text-${index}-${bulletIndex}`, x + 48, y, value, {
@@ -709,23 +761,23 @@ const layoutCards = (ctx: Ctx, slide: DemoSlideSpec) => {
   slide.cards.forEach((card, index) => {
     const x = MARGIN + index * (cardWidth + gap);
     rect(ctx, `card-bg-${index}`, x, y0, cardWidth, 360, {
-      fill: palette.white,
+      fill: palette.surface,
       stroke: palette.border,
       strokeWidth: 1,
     });
     rect(ctx, `card-accent-${index}`, x, y0, cardWidth, 8, {
-      fill: index === 1 ? palette.sky : palette.accent,
-      stroke: index === 1 ? palette.sky : palette.accent,
+      fill: index === 1 ? palette.teal : palette.accent,
+      stroke: index === 1 ? palette.teal : palette.accent,
       strokeWidth: 1,
     });
     ellipse(ctx, `card-badge-${index}`, x + 26, y0 + 40, 44, 44, {
-      fill: palette.tint,
-      stroke: palette.tint,
+      fill: palette.white,
+      stroke: palette.border,
       strokeWidth: 1,
       label: String(index + 1),
       labelSize: 20,
       labelFont: LILITA,
-      labelColor: palette.accent,
+      labelColor: palette.title,
     });
     text(
       ctx,
@@ -736,7 +788,7 @@ const layoutCards = (ctx: Ctx, slide: DemoSlideSpec) => {
       {
         size: 27,
         font: LILITA,
-        color: palette.ink,
+        color: palette.title,
       },
     );
     text(
@@ -776,7 +828,7 @@ const layoutStats = (ctx: Ctx, slide: DemoSlideSpec) => {
     text(ctx, `stat-value-${index}`, x + columnWidth / 2, y0 + 46, stat.value, {
       size: 72,
       font: LILITA,
-      color: index === 1 ? palette.sky : palette.accent,
+      color: index === 1 ? palette.title : palette.accent,
       align: "center",
     });
     text(
@@ -818,14 +870,16 @@ const layoutFlow = (ctx: Ctx, slide: DemoSlideSpec) => {
 
   slide.steps.forEach((step, index) => {
     const x = MARGIN + index * (boxWidth + arrowSpace);
+    const accents = [palette.accent, palette.teal, palette.orange];
+    const fills = [palette.surface, palette.tealTint, palette.orangeTint];
     rect(ctx, `flow-box-${index}`, x, boxY, boxWidth, boxHeight, {
-      fill: index % 2 === 0 ? palette.tint : palette.skyTint,
-      stroke: index % 2 === 0 ? palette.soft : palette.sky,
+      fill: index % 2 === 0 ? palette.surface : fills[index % 3],
+      stroke: index % 2 === 0 ? palette.border : accents[index % 3],
       strokeWidth: 2,
     });
     rect(ctx, `flow-chip-${index}`, x + 20, boxY + 22, 34, 34, {
-      fill: index % 2 === 0 ? palette.accent : palette.sky,
-      stroke: index % 2 === 0 ? palette.accent : palette.sky,
+      fill: accents[index % 3],
+      stroke: accents[index % 3],
       strokeWidth: 1,
       label: String(index + 1),
       labelSize: 18,
@@ -852,7 +906,7 @@ const layoutFlow = (ctx: Ctx, slide: DemoSlideSpec) => {
         boxY + boxHeight / 2,
         arrowSpace - 16,
         0,
-        palette.soft,
+        palette.border,
       );
     }
   });
@@ -891,8 +945,8 @@ const layoutSteps = (ctx: Ctx, slide: DemoSlideSpec) => {
     const y = y0 + row * 104;
 
     rect(ctx, `step-num-${index}`, x, y, 40, 40, {
-      fill: palette.accent,
-      stroke: palette.accent,
+      fill: palette.title,
+      stroke: palette.title,
       strokeWidth: 1,
       label: String(index + 1),
       labelSize: 20,
@@ -933,8 +987,8 @@ const layoutQuote = (ctx: Ctx, slide: DemoSlideSpec) => {
   }
 
   rect(ctx, "quote-panel", 120, 150, SLIDE_W - 240, 420, {
-    fill: palette.tint,
-    stroke: palette.soft,
+    fill: palette.surface,
+    stroke: palette.border,
     strokeWidth: 2,
   });
   rect(ctx, "quote-bar", 120, 150, 10, 420, {
@@ -966,12 +1020,12 @@ const layoutCompare = (ctx: Ctx, slide: DemoSlideSpec) => {
   const columnWidth = (CONTENT_W - gap) / 2;
 
   [
-    { key: "left" as const, panel: slide.left, color: palette.accent },
-    { key: "right" as const, panel: slide.right, color: palette.sky },
+    { key: "left" as const, panel: slide.left, color: palette.title },
+    { key: "right" as const, panel: slide.right, color: palette.accent },
   ].forEach(({ key, panel, color }, index) => {
     const x = MARGIN + index * (columnWidth + gap);
     rect(ctx, `compare-card-${key}`, x, y0, columnWidth, 330, {
-      fill: palette.white,
+      fill: palette.surface,
       stroke: palette.border,
       strokeWidth: 1,
     });
@@ -1027,8 +1081,8 @@ const layoutCode = (ctx: Ctx, slide: DemoSlideSpec) => {
     strokeWidth: 1,
   });
   rect(ctx, "code-bar", MARGIN, y0, CONTENT_W, 44, {
-    fill: palette.tint,
-    stroke: palette.tint,
+    fill: palette.titleTint,
+    stroke: palette.titleTint,
     strokeWidth: 1,
   });
   ellipse(ctx, "code-dot-a", MARGIN + 22, y0 + 17, 10, 10, {
@@ -1037,8 +1091,8 @@ const layoutCode = (ctx: Ctx, slide: DemoSlideSpec) => {
     strokeWidth: 1,
   });
   ellipse(ctx, "code-dot-b", MARGIN + 40, y0 + 17, 10, 10, {
-    fill: palette.sky,
-    stroke: palette.sky,
+    fill: palette.teal,
+    stroke: palette.teal,
     strokeWidth: 1,
   });
   text(ctx, "code-lang", MARGIN + CONTENT_W - 24, y0 + 14, slide.language, {
@@ -1068,8 +1122,8 @@ const layoutTable = (ctx: Ctx, slide: DemoSlideSpec) => {
   const rowHeight = 58;
 
   rect(ctx, "table-head", MARGIN, y0, CONTENT_W, 48, {
-    fill: palette.accent,
-    stroke: palette.accent,
+    fill: palette.title,
+    stroke: palette.title,
     strokeWidth: 1,
   });
   slide.headers.forEach((header, index) => {
@@ -1136,8 +1190,8 @@ const layoutTakeaway = (ctx: Ctx, slide: DemoSlideSpec) => {
   const y0 = header(ctx, slide);
 
   rect(ctx, "takeaway-box", MARGIN, y0, CONTENT_W, 150, {
-    fill: palette.tint,
-    stroke: palette.soft,
+    fill: palette.surface,
+    stroke: palette.border,
     strokeWidth: 2,
   });
   rect(ctx, "takeaway-bar", MARGIN, y0, 8, 150, {
@@ -1164,13 +1218,14 @@ const layoutTakeaway = (ctx: Ctx, slide: DemoSlideSpec) => {
     slide.points.forEach((point, index) => {
       const x = MARGIN + index * (columnWidth + gap);
       rect(ctx, `takeaway-card-${index}`, x, y0 + 190, columnWidth, 220, {
-        fill: palette.white,
+        fill: palette.surface,
         stroke: palette.border,
         strokeWidth: 1,
       });
+      const accents = [palette.accent, palette.teal, palette.orange];
       ellipse(ctx, `takeaway-dot-${index}`, x + 24, y0 + 214, 12, 12, {
-        fill: index === 1 ? palette.sky : palette.accent,
-        stroke: index === 1 ? palette.sky : palette.accent,
+        fill: accents[index % 3],
+        stroke: accents[index % 3],
         strokeWidth: 1,
       });
       text(
@@ -1195,9 +1250,10 @@ const layoutEnd = (ctx: Ctx, slide: DemoSlideSpec) => {
     return;
   }
 
+  darkBackdrop(ctx);
   ellipse(ctx, "end-blob", 920, -200, 520, 520, {
-    fill: palette.tint,
-    stroke: palette.soft,
+    fill: mix(DARK, 0.86),
+    stroke: mix(DARK, 0.7),
     strokeWidth: 2,
   });
   ellipse(ctx, "end-ring", 1080, 60, 200, 200, {
@@ -1213,11 +1269,11 @@ const layoutEnd = (ctx: Ctx, slide: DemoSlideSpec) => {
   text(ctx, "end-title", MARGIN, 210, fit(slide.title, 800, 72, LILITA), {
     size: 72,
     font: LILITA,
-    color: palette.ink,
+    color: palette.white,
   });
   text(ctx, "end-subtitle", MARGIN, 320, fit(slide.subtitle, 840, 26), {
     size: 26,
-    color: palette.muted,
+    color: palette.onDark,
   });
 
   const gap = 32;
@@ -1226,8 +1282,8 @@ const layoutEnd = (ctx: Ctx, slide: DemoSlideSpec) => {
   slide.links.forEach((link, index) => {
     const x = MARGIN + index * (columnWidth + gap);
     rect(ctx, `end-card-${index}`, x, 440, columnWidth, 160, {
-      fill: palette.surface,
-      stroke: palette.border,
+      fill: mix(DARK, 0.84),
+      stroke: mix(DARK, 0.68),
       strokeWidth: 1,
     });
     text(
@@ -1250,7 +1306,7 @@ const layoutEnd = (ctx: Ctx, slide: DemoSlideSpec) => {
       fit(link.detail, columnWidth - 48, 18),
       {
         size: 18,
-        color: palette.muted,
+        color: palette.onDark,
       },
     );
   });
@@ -1281,6 +1337,9 @@ const LAYOUTS: Record<string, (ctx: Ctx, slide: DemoSlideSpec) => void> = {
 const COLS = 2;
 const COL_GAP = 140;
 const ROW_GAP = 120;
+
+/** the slides that are backed by the dark blue */
+const DARK_SLIDE_KINDS = new Set(["cover", "section", "end"]);
 
 export type BuiltDemo = {
   skeletons: ExcalidrawElementSkeleton[];
@@ -1335,6 +1394,9 @@ export const buildDemo = (): BuiltDemo => {
       ...(slide.notes ? { notes: slide.notes } : {}),
     };
 
+    // the title, divider and closing slides are backed by the dark blue
+    const isDark = DARK_SLIDE_KINDS.has(slide.kind);
+
     skeletons.push(...ctx.els, {
       type: "frame",
       id: `${prefix}-frame-${index}`,
@@ -1350,7 +1412,7 @@ export const buildDemo = (): BuiltDemo => {
       fillStyle: FRAME_STYLE.fillStyle,
       roughness: FRAME_STYLE.roughness,
       roundness: FRAME_STYLE.roundness,
-      backgroundColor: FRAME_STYLE.backgroundColor,
+      backgroundColor: isDark ? palette.dark : FRAME_STYLE.backgroundColor,
       customData: { presentation },
     });
   });
@@ -1455,6 +1517,36 @@ export const openDemoScene = async (
   });
 
   return created.length;
+};
+
+/**
+ * Writes the demo to a `.excalidraw` file: a normal Excalidraw document with
+ * one frame per slide, which opens in any editor and can be edited, saved and
+ * presented like any other canvas.
+ */
+export const downloadDemoAsExcalidraw = async (doc?: Document | null) => {
+  const { skeletons } = buildDemo();
+  const elements = convertToExcalidrawElements(skeletons);
+
+  const json = serializeAsJSON(
+    elements,
+    { viewBackgroundColor: "#ffffff" },
+    {},
+    "local",
+  );
+
+  const ownerDocument = doc ?? document;
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = ownerDocument.createElement("a");
+  link.href = url;
+  link.download = `${DEMO_TITLE}.excalidraw`;
+  ownerDocument.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+
+  return elements.length;
 };
 
 export { DEMO_SLIDES, DEMO_TITLE };

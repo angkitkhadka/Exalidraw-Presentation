@@ -121,7 +121,7 @@
         }
 
         &.active {
-          background: var(--color-primary, #6965db);
+          background: var(--exc-accent, #00a1de);
           color: #fff;
         }
       }
@@ -154,7 +154,7 @@
       box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
 
       &.active {
-        box-shadow: 0 0 0 2px var(--color-primary, #6965db);
+        box-shadow: 0 0 0 2px var(--exc-accent, #00a1de);
       }
     }
 

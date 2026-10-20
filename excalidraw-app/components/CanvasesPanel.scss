@@ -1,5 +1,11 @@
 .excalidraw {
   .exc-canvases {
+    /* the project colour scheme */
+    --color-primary: #00549f;
+    --exc-accent: #00a1de;
+    --exc-border: #c1c7cd;
+    --exc-surface: #f8f9fb;
+
     display: flex;
     flex-direction: column;
     gap: 0.625rem;
@@ -111,8 +117,8 @@
       gap: 0.5rem;
       padding: 0.875rem;
       border-radius: 0.625rem;
-      border: 1px solid var(--color-primary, #4f46e5);
-      background: var(--color-surface-low, rgba(79, 70, 229, 0.06));
+      border: 1px solid var(--color-primary);
+      background: var(--exc-surface);
     }
 
     &__demoHead {
@@ -128,7 +134,7 @@
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--color-surface-lowest, #fff);
-      background: var(--color-primary, #4f46e5);
+      background: var(--color-primary);
       border-radius: 0.25rem;
       padding: 0.125rem 0.375rem;
     }
@@ -150,14 +156,23 @@
       opacity: 0.75;
     }
 
+    &__demoActions {
+      display: flex;
+      gap: 0.375rem;
+
+      > * {
+        flex: 1 1 0;
+      }
+    }
+
     &__btn--demo {
       align-self: stretch;
-      background: var(--color-primary, #4f46e5);
+      background: var(--color-primary);
       border-color: transparent;
       color: var(--color-surface-lowest, #fff);
 
       &:hover:not(:disabled) {
-        background: var(--color-primary-hover, #4f46e5);
+        background: var(--exc-accent);
       }
     }
 

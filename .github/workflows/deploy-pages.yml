@@ -43,7 +43,7 @@ jobs:
           # (Settings -> Secrets and variables -> Actions -> Variables).
           VITE_APP_BASE_PATH: ${{ vars.VITE_APP_BASE_PATH || '/' }}
           # the public url, used for the sitemap
-          VITE_APP_HOSTNAME: ${{ vars.VITE_APP_HOSTNAME || 'http://presentation.akit.com.np' }}
+          VITE_APP_HOSTNAME: ${{ vars.VITE_APP_HOSTNAME || 'https://presentation.angkit.com.np' }}
           # this fork is fully local — no analytics, no collaboration backend
           VITE_APP_ENABLE_TRACKING: "false"
           # serve the fonts from the deployment instead of the upstream CDN

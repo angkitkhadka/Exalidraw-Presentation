@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   checkIcon,
+  downloadIcon,
   pencilIcon,
   PlusIcon,
   TrashIcon,
@@ -29,6 +30,7 @@ import {
 import {
   DEMO_SLIDES,
   DEMO_TITLE,
+  downloadDemoAsExcalidraw,
   openDemoScene,
 } from "../presentation/demoDeck";
 import { presentationAtom } from "../presentation/state";
@@ -177,6 +179,22 @@ const CanvasesPanelInner = ({ api }: { api: ExcalidrawImperativeAPI }) => {
     }
   };
 
+  /**
+   * Writes the demo to a `.excalidraw` file: a normal document with one frame
+   * per slide, which opens in any editor.
+   */
+  const handleDownloadDemo = async () => {
+    setBusy(true);
+    try {
+      await downloadDemoAsExcalidraw(rootRef.current?.ownerDocument);
+      toast("The demo was downloaded as an .excalidraw file");
+    } catch (error: any) {
+      toast(error?.message || "Could not download the demo deck");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleNew = () => {
     const appState = api.getAppState();
     api.updateScene({
@@ -273,15 +291,27 @@ const CanvasesPanelInner = ({ api }: { api: ExcalidrawImperativeAPI }) => {
           speaker notes. It is regenerated every time, so it can never be lost
           or deleted.
         </p>
-        <button
-          type="button"
-          className="exc-canvases__btn exc-canvases__btn--demo"
-          disabled={busy}
-          onClick={handleOpenDemo}
-        >
-          {playerPlayIcon}
-          Open and present the demo
-        </button>
+        <div className="exc-canvases__demoActions">
+          <button
+            type="button"
+            className="exc-canvases__btn exc-canvases__btn--demo"
+            disabled={busy}
+            onClick={handleOpenDemo}
+          >
+            {playerPlayIcon}
+            Present
+          </button>
+          <button
+            type="button"
+            className="exc-canvases__btn"
+            disabled={busy}
+            onClick={handleDownloadDemo}
+            title="Save the demo as a .excalidraw file, with one frame per slide"
+          >
+            {downloadIcon}
+            Download
+          </button>
+        </div>
       </div>
 
       <div className="exc-canvases__list">

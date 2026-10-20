@@ -53,15 +53,19 @@ A slide is a frame. Draw a frame on the canvas and it becomes a slide, in readin
 
 Every slide can be replayed on demand, and the whole deck can be applied to all slides at once when you want a consistent look.
 
-See [`excalidraw-app/presentation/README.md`](excalidraw-app/presentation/README.md) for the full documentation, including the deck spec that lets an assistant generate a deck for you.
+See [`excalidraw-app/presentation/README.md`](excalidraw-app/presentation/README.md) for the full documentation.
 
 ## Canvases
 
 The **Canvases** tab keeps as many drawings as you like in the browser. Save the current canvas under a name, open a saved one, start a new one, rename or delete them. Everything is stored locally, in IndexedDB, and survives a reload. Clearing your browser data removes it, so nothing is ever uploaded anywhere.
 
-The tab also holds the built-in demo: a hundred slides on how the web works, with transitions, hand-drawn draw-in animations and speaker notes. It is regenerated every time, so it can never be deleted or lost.
+The tab also holds the built-in demo: a hundred slides on how the web works, with transitions, hand-drawn draw-in animations and speaker notes. It is regenerated every time, so it can never be deleted or lost. It can also be downloaded as a normal `.excalidraw` file, with one frame per slide, which opens in any editor.
 
 See [`excalidraw-app/canvases.md`](excalidraw-app/canvases.md) for the details.
+
+## Colours
+
+Every deck uses one colour scheme, so the slides, the presenter and the panels look like they belong together. The title, divider and closing slides are backed by the dark blue, the content slides are white, the titles are the logo blue, and the highlights are the bright blue. See [`excalidraw-app/colors.md`](excalidraw-app/colors.md) for the full list.
 
 ## Local development
 

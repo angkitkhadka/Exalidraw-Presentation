@@ -1,5 +1,12 @@
 .excalidraw {
   .exc-slides {
+    /* the project colour scheme: the logo blue for the titles and the
+       actions, the bright blue for the highlights */
+    --color-primary: #00549f;
+    --exc-accent: #00a1de;
+    --exc-border: #c1c7cd;
+    --exc-surface: #f8f9fb;
+
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -109,7 +116,8 @@
       display: flex;
       flex-direction: column;
       border-radius: 0.5rem;
-      background: var(--color-surface-low, rgba(128, 128, 128, 0.08));
+      background: var(--exc-surface);
+      border: 1px solid var(--exc-border);
       overflow: hidden;
     }
 
@@ -125,7 +133,7 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      opacity: 0.85;
+      color: var(--color-primary);
 
       > span:first-child {
         flex: 0 0 auto;
@@ -322,7 +330,7 @@
       }
 
       &--current {
-        background: var(--color-primary);
+        background: var(--exc-accent);
         border-color: transparent;
         color: var(--color-surface-lowest, #fff);
       }
@@ -369,7 +377,7 @@
 
     &--active {
       border-color: var(--color-primary);
-      background: var(--color-surface-low, rgba(128, 128, 128, 0.08));
+      background: var(--exc-surface);
     }
 
     &__index {
